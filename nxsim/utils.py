@@ -83,7 +83,7 @@ def log_to_file(stuff, filename, verbose=True):
         print('Written {} items to pickled binary file: {}'.format(len(stuff), filename))
     return filename
 
-def log_all_to_file(state_tuples, topology_tuples, state_vector_tuples, dir_path, trial_id):
+def log_all_to_file(states=state_tuples, dir_path='sim_01', trial_id=0):
     """Stores states, topologies, and state vectors as pickled files"""
     log_to_file(state_tuples, make_state_filename(dir_path, trial_id))
     log_to_file(state_vector_tuples, make_state_vector_filename(dir_path, trial_id))
