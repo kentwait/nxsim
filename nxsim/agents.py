@@ -9,6 +9,10 @@ class BaseAgent(object):
     r = random.Random(SEED)
     TIMESTEP_DEFAULT = 1.0
 
+    # state of agent
+    State = namedtuple('State', 'id sequence')
+
+
     def __init__(self, environment=None, agent_id=0, state=None, global_topology=None,
                  name='network_process', global_params=(), **state_params):
         """Base class for nxsim agents
@@ -38,6 +42,7 @@ class BaseAgent(object):
                                                'Cannot be NoneType.')
         assert state is not None, TypeError('__init__ missing 1 required keyword argument: \'state\'. '
                                             'Cannot be NoneType.')
+        assert isinstance(state, type(self).State), TypeError('\'state\' must be a State namedtuple type')
         assert global_topology is not None, \
                 TypeError('__init__ missing 1 required keyword argument: \'global_topology\'')
 
@@ -63,12 +68,12 @@ class BaseAgent(object):
         """Returns list of nodes in the network"""
         return self.global_topology.nodes()
 
-    def get_agents(self, state=None, limit_neighbors=False):
+    def get_agents(self, state_id=None, limit_neighbors=False):
         """Returns list of agents based on their state and connectedness
 
         Parameters
         ----------
-        state : int, str, or array-like, optional
+        state_id : int, str, or array-like, optional
             Used to select agents that have the same specified "state". If state = None, returns all agents regardless
             of its current state
         limit_neighbors : bool, optional
@@ -80,19 +85,19 @@ class BaseAgent(object):
         else:
             agents = self.get_all_nodes()
 
-        if state is None:
+        if state_id is None:
             return [self.global_topology.node[_]['agent'] for _ in agents]  # return all regardless of state
         else:
             return [self.global_topology.node[_]['agent'] for _ in agents
-                    if self.global_topology.node[_]['agent'].state == state]
+                    if self.global_topology.node[_]['agent'].state.id == state_id]
 
-    def get_all_agents(self, state=None):
+    def get_all_agents(self, state_id=None):
         """Returns list of agents based only on their state"""
-        return self.get_agents(state=state, limit_neighbors=False)
+        return self.get_agents(state_id=state_id, limit_neighbors=False)
 
-    def get_neighboring_agents(self, state=None):
+    def get_neighboring_agents(self, state_id=None):
         """Returns list of neighboring agents based on their state"""
-        return self.get_agents(state=state, limit_neighbors=True)
+        return self.get_agents(state_id=state_id, limit_neighbors=True)
 
     def get_neighboring_nodes(self):
         """Returns list of neighboring nodes"""
