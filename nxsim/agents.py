@@ -32,9 +32,12 @@ class BaseAgent(object):
             Key-value pairs of other state parameters for the agent
         """
         # Check for REQUIRED arguments
-        assert environment is not None, TypeError('__init__ missing 1 required keyword argument: \'environment\'')
-        assert agent_id is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_id\'')
-        assert len(state) != 0, TypeError('__init__ missing 1 required keyword argument: \'state\'')
+        assert environment is not None, TypeError('__init__ missing 1 required keyword argument: \'environment\'. '
+                                                  'Cannot be NoneType.')
+        assert agent_id is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_id\'. '
+                                               'Cannot be NoneType.')
+        assert state is not None, TypeError('__init__ missing 1 required keyword argument: \'state\'. '
+                                            'Cannot be NoneType.')
         assert global_topology is not None, \
                 TypeError('__init__ missing 1 required keyword argument: \'global_topology\'')
 
@@ -239,7 +242,7 @@ class LoggingAgent(object):
         # log topology ONLY IF it changed
         if not nx.fast_could_be_isomorphic(self.topology, nx.Graph(self.sim.G)):
             self.topology = utils.create_copy_without_data(self.sim.G)
-            self.topology_tuples.append(TopologyTuple(time=self.env.now(), topology=self.topology))
+            self.topology_tuples.append(TopologyTuple(time=self.env.now, topology=self.topology))
 
     def log_trial_to_files(self, trial_id=None):
         assert trial_id is not None, TypeError('missing 1 required keyword argument: \'trial_id\'. '

@@ -71,8 +71,7 @@ class NetworkSimulation(object):
 
         # Set up environmental agent
         if self.environment_agent_type:
-            env_agent = self.environment_agent_type(0, agent_id='env_agent', global_topology=self.G,
-                                                    global_params=self.global_params)
+            env_agent = self.environment_agent_type(simulation=self)
             self.env.process(env_agent.run())
 
         # Set up logging
@@ -88,7 +87,7 @@ class NetworkSimulation(object):
     def setup_network_agents(self):
         """Initializes agents on nodes of graph and registers them to the SimPy environment"""
         for i in self.G.nodes():
-            agent = self.agent_type(self.env, state=self.initial_states[i], global_topology=self.G, state_vector=[],
-                                    global_params=self.global_params, agent_id=i)
+            agent = self.agent_type(environment=self.env, agent_id=i, state=self.initial_states[i],
+                                    global_topology=self.G, global_params=self.global_params)
             self.G.node[i]['agent'] = agent
             self.env.process(agent.run())

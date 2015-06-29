@@ -40,26 +40,20 @@ def retrieve_trial(path, trial_id):
     """Retrieve states, topologies and statevectors stored in a given path"""
     states = retrieve(make_state_filename(path, trial_id))
     topos = retrieve(make_topo_filename(path, trial_id))
-    state_vectors = retrieve(make_state_vector_filename(path, trial_id))
-    return states, topos, state_vectors
+    return states, topos
 
 def retrieve_all_trials(path):
     """Retrieves all trials found inside a directory"""
     states = list()
-    state_vectors = list()
     topos = list()
     for f in glob.glob(os.path.join(path, '*{}'.format(PYTHON_PICKLE_EXTENSION))):
-        if TOPO_SUFFIX in f:
-            topos.append(f)
-        elif STATE_SUFFIX in f:
+        if STATE_SUFFIX in f:
             states.append(f)
-        elif STATE_VECTOR_SUFFIX in f:
-            state_vectors.append(f)
-
+        elif TOPO_SUFFIX in f:
+            topos.append(f)
     state_list = [retrieve(f) for f in states]
-    state_vector_list = [retrieve(f) for f in state_vectors]
     topo_list = [retrieve(f) for f in topos]
-    return state_list, topo_list, state_vector_list
+    return state_list, topo_list
 
 def retrieve(filename):
     """Retrieve a pickled object"""
@@ -83,8 +77,7 @@ def log_to_file(stuff, filename, verbose=True):
         print('Written {} items to pickled binary file: {}'.format(len(stuff), filename))
     return filename
 
-def log_all_to_file(states=state_tuples, dir_path='sim_01', trial_id=0):
+def log_all_to_file(states=(), topos=(), dir_path='sim_01', trial_id=0):
     """Stores states, topologies, and state vectors as pickled files"""
-    log_to_file(state_tuples, make_state_filename(dir_path, trial_id))
-    log_to_file(state_vector_tuples, make_state_vector_filename(dir_path, trial_id))
-    log_to_file(topology_tuples, make_topo_filename(dir_path, trial_id))
+    log_to_file(states, make_state_filename(dir_path, trial_id))
+    log_to_file(topos, make_topo_filename(dir_path, trial_id))
