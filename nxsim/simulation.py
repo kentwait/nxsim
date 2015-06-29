@@ -92,14 +92,3 @@ class NetworkSimulation(object):
                                     global_params=self.global_params, agent_id=i)
             self.G.node[i]['agent'] = agent
             self.env.process(agent.run())
-
-    # def addNewNode(self, state, agentClass=None):
-    #     """Add new node to network and activate an agent on it"""
-    #
-    #     if not agentClass:
-    #         agentClass = self.agentClass
-    #     agent = agentClass(state, (self.id_counter, self, self.G, self.params))
-    #     self.G.add_node(self.id_counter, {'agent': agent})
-    #     self.activate(agent, agent.Run())
-    #     self.id_counter += 1
-    #     return self.id_counter - 1
