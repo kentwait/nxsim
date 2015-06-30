@@ -1,6 +1,6 @@
 import networkx as nx
 import simpy
-from .agents import LoggingAgent
+from . import BaseLoggingAgent
 
 class NetworkSimulation(object):
     """NetworkSimulation of agents over any type of networkx graph"""
@@ -76,7 +76,7 @@ class NetworkSimulation(object):
 
         # Set up logging
         logging_interval = 1
-        logger = LoggingAgent(simulation=self, dir_path=self.dir_path, logging_interval=logging_interval)
+        logger = BaseLoggingAgent(simulation=self, dir_path=self.dir_path, logging_interval=logging_interval)
 
         # Run trial
         self.env.run(until=self.until)

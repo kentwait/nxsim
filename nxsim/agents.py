@@ -1,4 +1,6 @@
+import os
 import random
+from collections import OrderedDict
 import networkx as nx
 from .constants import *
 from . import utils
@@ -202,8 +204,9 @@ class BaseEnvironmentAgent(BaseAgent):
         return NotImplementedError()
 
 
-class LoggingAgent(object):
-    def __init__(self, simulation=None, dir_path='sim_01', logging_interval=1):
+class BaseLoggingAgent(object):
+    def __init__(self, simulation=None, dir_path='sim_01', logging_interval=1,
+                 base_filename='log_trial', pickle_extension='pickled', state_history_suffix='states'):
         """Log states of agents and graph topology
 
         Parameters
@@ -213,12 +216,14 @@ class LoggingAgent(object):
         logging_interval : int, optional (default = 1)
         """
         self.sim = simulation
-        self.dir_path = dir_path
         self.interval = logging_interval
+        self.dir_path = dir_path
+        self.basename = base_filename
+        self.pickle_ext = pickle_extension
+        self.state_history_suffix = state_history_suffix
 
-        self.state_tuples = list()
-        self.state_vector_tuples = list()
-        self.topology_tuples = list()
+        self.state_history = OrderedDict()
+        # self.topology_history = list()  # not implemented
 
         # Initialize process
         self.env = self.sim.env
@@ -234,17 +239,27 @@ class LoggingAgent(object):
 
     def log_current_state(self):
         nodes = self.sim.G.nodes(data=True)
-        states = [node[1]['agent'].state for node in nodes]
+        self.state_history[self.env.now] = [node[1]['agent'].state for node in nodes]
 
-        # log states
-        self.state_tuples.append(StateTuple(time=self.env.now, states=states))
-
-        # log topology ONLY IF it changed
-        if not nx.fast_could_be_isomorphic(self.topology, nx.Graph(self.sim.G)):
-            self.topology = utils.create_copy_without_data(self.sim.G)
-            self.topology_tuples.append(TopologyTuple(time=self.env.now, topology=self.topology))
-
-    def log_trial_to_files(self, trial_id=None):
+    def save_trial_state_history(self, trial_id=0):
         assert trial_id is not None, TypeError('missing 1 required keyword argument: \'trial_id\'. '
                                                'Cannot be set to NoneType')
-        utils.log_all_to_file(states=self.state_tuples, dir_path=self.dir_path, trial_id=trial_id)
+        utils.dump(self.state_history, self.make_filename(trial_id, self.state_history_suffix))
+
+    @staticmethod
+    def open_trial_state_history(dir_path, basename='log_trial', trial_id=0, pickle_extension='pickle'):
+        return utils.load(BaseLoggingAgent.make_state_filename(dir_path, basename=basename, trial_id=trial_id,
+            pickle_extension=pickle_extension))
+
+    @staticmethod
+    def make_filename(dir_path, basename='log_trial', trial_id=0, suffix='states', pickle_extension='pickle'):
+        return os.path.join(dir_path, '{basename}_{trial_id}_{suffix}.{pickle_extension}'.format(
+            basename=basename, trial_id=trial_id, suffix=suffix,
+            pickle_extension=pickle_extension,)
+        )
+
+    @staticmethod
+    def make_state_filename(dir_path, basename='log_trial', trial_id=0, pickle_extension='pickle'):
+        return os.path.join(dir_path, '{basename}_{trial_id}_{suffix}.{pickle_extension}'.format(
+            basename=basename, trial_id=trial_id, suffix='state', pickle_extension=pickle_extension,)
+        )
