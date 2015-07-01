@@ -2,6 +2,7 @@ import os
 import random
 from collections import OrderedDict
 from .constants import *
+from . import NetworkEnvironment
 from . import utils
 
 
@@ -10,24 +11,21 @@ class BaseAgent(object):
     r = random.Random(SEED)
     TIMESTEP_DEFAULT = 1.0
 
-    def __init__(self, environment=None, agent_id=0, state=None, global_topology=None,
-                 name='network_process', global_params=(), **state_params):
+    def __init__(self, environment=None, agent_id=None, state=None,
+                 name='network_process', environment_params=(), **state_params):
         """Base class for nxsim agents
 
         Parameters
         ----------
         environment : simpy.Environment() instance
             Simulation environment shared by processes
-        agent_id : int or str
+        agent_id : int, optional
             Unique identifier
-        state : object
-            State of the Agent, this may be an integer or string or any other object
-        global_topology : nx.Graph object
-            Network topology of the simulation the agent belongs to
-
+        state : dict-like, optional
+            State of the Agent. Object must be subscriptable and have an "id" key
         name : str, optional
             Descriptive name of the agent
-        global_params : dictionary-like, optional
+        environment_params : dictionary-like, optional
             Key-value pairs of other global parameter to inject into the Agent
         state_params : keyword arguments, optional
             Key-value pairs of other state parameters for the agent
@@ -35,22 +33,15 @@ class BaseAgent(object):
         # Check for REQUIRED arguments
         assert environment is not None, TypeError('__init__ missing 1 required keyword argument: \'environment\'. '
                                                   'Cannot be NoneType.')
-        assert agent_id is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_id\'. '
-                                               'Cannot be NoneType.')
-        assert state is not None, TypeError('__init__ missing 1 required keyword argument: \'state\'. '
-                                            'Cannot be NoneType.')
-        assert global_topology is not None, \
-                TypeError('__init__ missing 1 required keyword argument: \'global_topology\'')
-
         # Initialize agent parameters
         self.id = agent_id
         self.state = state
         self.name = name
         self.state_params = state_params
 
-        # Inject global parameters
-        self.global_topology = global_topology
-        self.global_params = global_params
+        # Global parameters
+        self.global_topology = environment.G
+        self.environment_params = environment.environment_params
 
         # Register agent to environment
         self.env = environment
@@ -64,12 +55,12 @@ class BaseAgent(object):
         """Returns list of nodes in the network"""
         return self.global_topology.nodes()
 
-    def get_agents(self, state=None, limit_neighbors=False):
+    def get_agents(self, state_id=None, limit_neighbors=False):
         """Returns list of agents based on their state and connectedness
 
         Parameters
         ----------
-        state : int, str, or array-like, optional
+        state_id : int, str, or array-like, optional
             Used to select agents that have the same specified "state". If state = None, returns all agents regardless
             of its current state
         limit_neighbors : bool, optional
@@ -81,19 +72,19 @@ class BaseAgent(object):
         else:
             agents = self.get_all_nodes()
 
-        if state is None:
+        if state_id is None:
             return [self.global_topology.node[_]['agent'] for _ in agents]  # return all regardless of state
         else:
             return [self.global_topology.node[_]['agent'] for _ in agents
-                    if self.global_topology.node[_]['agent'].state['id'] == state]
+                    if self.global_topology.node[_]['agent'].state['id'] == state_id]
 
-    def get_all_agents(self, state=None):
+    def get_all_agents(self, state_id=None):
         """Returns list of agents based only on their state"""
-        return self.get_agents(state=state, limit_neighbors=False)
+        return self.get_agents(state_id=state_id, limit_neighbors=False)
 
-    def get_neighboring_agents(self, state=None):
+    def get_neighboring_agents(self, state_id=None):
         """Returns list of neighboring agents based on their state"""
-        return self.get_agents(state=state, limit_neighbors=True)
+        return self.get_agents(state_id=state_id, limit_neighbors=True)
 
     def get_neighboring_nodes(self):
         """Returns list of neighboring nodes"""
@@ -109,6 +100,7 @@ class BaseAgent(object):
         Parameters
         ----------
         agent_id : int
+
         """
         self.global_topology.remove_node(agent_id)
 
@@ -118,25 +110,33 @@ class BaseAgent(object):
 
 
 class BaseNetworkAgent(BaseAgent):
-    pass
+    def __init__(self, environment=None, agent_id=None, state=None,
+                 name='network_agent', environment_params=(), **state_params):
+        assert agent_id is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_id\'. '
+                                               'Cannot be NoneType.')
+        assert state is not None, TypeError('__init__ missing 1 required keyword argument: \'state\'. '
+                                            'Cannot be NoneType.')
+        super().__init__(environment=environment, agent_id=agent_id, state=state,
+                         name=name, environment_params=environment_params, **state_params)
 
 
 class BaseEnvironmentAgent(BaseAgent):
-    def __init__(self, simulation=None, name='environment_process', **state_params):
-        """Base class for environment agents
+    """Base class for environment agents
 
-        Parameters
-        ----------
-        simulation : NetworkSimulation class
-        name : str, optional
-            Descriptive name for the environment agent
-        state_params : keyword arguments, optional
-        """
-        assert simulation is not None, TypeError('__init__ missing 1 required keyword argument: \'simulation\'')
-        self.sim = simulation
+    Parameters
+    ----------
+    simulation : NetworkSimulation class
+    name : str, optional
+        Descriptive name for the environment agent
+    state_params : keyword arguments, optional
 
-        super().__init__(environment=self.sim.env, agent_id=-1, state='environment_agent',
-                         global_topology=self.sim.G, name=name, global_params=self.sim.global_params, **state_params)
+    """
+
+    def __init__(self, environment=None, name='environment_process', **state_params):
+        assert isinstance(environment, NetworkEnvironment)
+        super().__init__(environment=environment, agent_id=None, state=None,
+                         global_topology=environment.G, name=name, environment_params=environment.environment_params,
+                         **state_params)
 
     def add_node(self, agent_type=None, state=None, name='network_process', **state_params):
         """Add a new node to the current network
@@ -157,11 +157,10 @@ class BaseEnvironmentAgent(BaseAgent):
         int
             Agent ID of the new node
         """
-        agent_id = int(self.sim.id_counter)
-        agent = agent_type(self.sim.env, agent_id=agent_id, state=state, global_topology=self.sim.G,
-                           name=name, global_params=self.sim.global_params, **state_params)
-        self.sim.G.add_node(self.sim.id_counter, {'agent': agent})
-        self.sim.id_counter +=  1
+        agent_id = int(len(self.global_topology.nodes()))
+        agent = agent_type(self.env, agent_id=agent_id, state=state, global_topology=self.global_topology,
+                           name=name, environment_params=self.environment_params, **state_params)
+        self.global_topology.add_node(agent_id, {'agent': agent})
         return agent_id
 
 
@@ -197,17 +196,23 @@ class BaseEnvironmentAgent(BaseAgent):
 
 
 # CHANGE LOGGING BEHAVIOR BECAUSE IT DOES NOT WORK!
-class BaseLoggingAgent(object):
-    def __init__(self, environment=None, topology=None, dir_path='sim_01', logging_interval=1,
-                 base_filename='log', pickle_extension='pickled', state_history_suffix='states'):
-        """Log states of agents and graph topology
+class BaseLoggingAgent(BaseAgent):
+    """Log states of agents and graph topology
 
-        Parameters
-        ----------
-        simulation : NetworkSimulation instance
-        dir_path : directory path, str, optional (default = 'sim_01')
-        logging_interval : int, optional (default = 1)
-        """
+    Parameters
+    ----------
+    environment : NetworkEnvironment instance
+    dir_path : directory path, str, optional (default = 'sim_01')
+    logging_interval : int, optional (default = 1)
+    base_filename : str, optional
+    pickle_extension : str, optional
+    state_history_suffix : str, optional
+
+    """
+    def __init__(self, environment=None, dir_path='sim_01', logging_interval=1,
+                 base_filename='log', pickle_extension='pickled', state_history_suffix='states'):
+        super().__init__(environment=environment, agent_id=None, state=None,
+                         name='network_process', environment_params=())
         self.interval = logging_interval
         self.dir_path = dir_path
         self.basename = base_filename
@@ -221,17 +226,15 @@ class BaseLoggingAgent(object):
         self.env = environment
         self.action = self.env.process(self.run())
 
-        # Initialize empty graph
-        self.G = topology
+        # Global parameters
+        self.global_topology = environment.G
+        self.environment_params = environment.environment_params
 
     def run(self):
         while True:
-            self.log_current_state()
+            nodes = self.global_topology.nodes(data=True)
+            self.state_history[self.env.now] = {i: node[1]['agent'].state for i, node in enumerate(nodes)}
             yield self.env.timeout(self.interval)
-
-    def log_current_state(self):
-        nodes = self.G.nodes(data=True)
-        self.state_history[self.env.now] = {i: node[1]['agent'].state for i, node in enumerate(nodes)}
 
     def save_trial_state_history(self, trial_id=0):
         assert trial_id is not None, TypeError('missing 1 required keyword argument: \'trial_id\'. '
