@@ -1,8 +1,9 @@
 import os
 import random
+from copy import deepcopy
 from collections import OrderedDict
 from .constants import *
-from . import NetworkEnvironment
+from .environment import NetworkEnvironment
 from . import utils
 
 
@@ -12,7 +13,7 @@ class BaseAgent(object):
     TIMESTEP_DEFAULT = 1.0
 
     def __init__(self, environment=None, agent_id=None, state=None,
-                 name='network_process', environment_params=(), **state_params):
+                 name='network_process', **state_params):
         """Base class for nxsim agents
 
         Parameters
@@ -25,8 +26,6 @@ class BaseAgent(object):
             State of the Agent. Object must be subscriptable and have an "id" key
         name : str, optional
             Descriptive name of the agent
-        environment_params : dictionary-like, optional
-            Key-value pairs of other global parameter to inject into the Agent
         state_params : keyword arguments, optional
             Key-value pairs of other state parameters for the agent
         """
@@ -111,13 +110,13 @@ class BaseAgent(object):
 
 class BaseNetworkAgent(BaseAgent):
     def __init__(self, environment=None, agent_id=None, state=None,
-                 name='network_agent', environment_params=(), **state_params):
+                 name='network_agent', **state_params):
         assert agent_id is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_id\'. '
                                                'Cannot be NoneType.')
         assert state is not None, TypeError('__init__ missing 1 required keyword argument: \'state\'. '
                                             'Cannot be NoneType.')
         super().__init__(environment=environment, agent_id=agent_id, state=state,
-                         name=name, environment_params=environment_params, **state_params)
+                         name=name, **state_params)
 
 
 class BaseEnvironmentAgent(BaseAgent):
@@ -135,8 +134,7 @@ class BaseEnvironmentAgent(BaseAgent):
     def __init__(self, environment=None, name='environment_process', **state_params):
         assert isinstance(environment, NetworkEnvironment)
         super().__init__(environment=environment, agent_id=None, state=None,
-                         global_topology=environment.G, name=name, environment_params=environment.environment_params,
-                         **state_params)
+                         name=name, **state_params)
 
     def add_node(self, agent_type=None, state=None, name='network_process', **state_params):
         """Add a new node to the current network
@@ -158,8 +156,7 @@ class BaseEnvironmentAgent(BaseAgent):
             Agent ID of the new node
         """
         agent_id = int(len(self.global_topology.nodes()))
-        agent = agent_type(self.env, agent_id=agent_id, state=state, global_topology=self.global_topology,
-                           name=name, environment_params=self.environment_params, **state_params)
+        agent = agent_type(self.env, agent_id=agent_id, state=state, name=name, **state_params)
         self.global_topology.add_node(agent_id, {'agent': agent})
         return agent_id
 
@@ -211,8 +208,7 @@ class BaseLoggingAgent(BaseAgent):
     """
     def __init__(self, environment=None, dir_path='sim_01', logging_interval=1,
                  base_filename='log', pickle_extension='pickled', state_history_suffix='states'):
-        super().__init__(environment=environment, agent_id=None, state=None,
-                         name='network_process', environment_params=())
+        super().__init__(environment=environment, agent_id=None, state=None, name='network_process')
         self.interval = logging_interval
         self.dir_path = dir_path
         self.basename = base_filename
@@ -233,7 +229,7 @@ class BaseLoggingAgent(BaseAgent):
     def run(self):
         while True:
             nodes = self.global_topology.nodes(data=True)
-            self.state_history[self.env.now] = {i: node[1]['agent'].state for i, node in enumerate(nodes)}
+            self.state_history[self.env.now] = {i: deepcopy(node[1]['agent'].state) for i, node in enumerate(nodes)}
             yield self.env.timeout(self.interval)
 
     def save_trial_state_history(self, trial_id=0):

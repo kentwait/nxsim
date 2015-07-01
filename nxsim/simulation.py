@@ -1,12 +1,12 @@
 import networkx as nx
 from copy import deepcopy
-from . import BaseLoggingAgent
-from . import NetworkEnvironment
+from .agents import BaseLoggingAgent
+from .agents import NetworkEnvironment
 
 class NetworkSimulation(object):
     """NetworkSimulation of agents over any type of networkx graph"""
     def __init__(self, topology=None, agent_type=None, states=(),
-                 environment_agent=None, dir_path='sim_01', num_trials=3, max_time=100,
+                 environment_agent=None, dir_path='sim_01', num_trials=3, max_time=100, logging_interval=1.0,
                  **environment_params):
         """
         Parameters
@@ -40,6 +40,7 @@ class NetworkSimulation(object):
         self.dir_path = dir_path
         self.environment_agent_type = environment_agent
         self.environment_params = environment_params
+        self.logging_interval = logging_interval
 
         # Initial states
         # self.initial_topology = self.G.copy()
@@ -75,7 +76,7 @@ class NetworkSimulation(object):
             self.env.process(env_agent.run())
 
         # Set up logging
-        logging_interval = 1
+        logging_interval = self.logging_interval
         logger = BaseLoggingAgent(environment=self.env, dir_path=self.dir_path, logging_interval=logging_interval)
 
         # Run trial
@@ -86,7 +87,6 @@ class NetworkSimulation(object):
 
     def setup_network_agents(self):
         """Initializes agents on nodes of graph and registers them to the SimPy environment"""
-        for i in self.G.nodes():
-            self.G.node[i]['agent'] = self.agent_type(environment=self.env, agent_id=i,
-                                                      state=deepcopy(self.initial_states[i]),
-                                                      global_topology=self.G, global_params=self.environment_params)
+        for i in self.env.G.nodes():
+            self.env.G.node[i]['agent'] = self.agent_type(environment=self.env, agent_id=i,
+                                                          state=deepcopy(self.initial_states[i]))
