@@ -1,2 +1,2 @@
-from nxsim.agents import BaseAgent, BaseNetworkAgent, BaseEnvironmentAgent, BaseLoggingAgent
-from nxsim.simulation import NetworkSimulation
+from .agents import BaseAgent, BaseNetworkAgent, BaseEnvironmentAgent, BaseLoggingAgent
+from .simulation import NetworkSimulation

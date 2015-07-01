@@ -1,4 +1,5 @@
 import networkx as nx
+from copy import deepcopy
 import simpy
 from . import BaseLoggingAgent
 
@@ -63,7 +64,7 @@ class NetworkSimulation(object):
         # Set-up trial environment and graph
         self.env = simpy.Environment()
         self.G = self.initial_topology.copy()
-        self.trial_params = self.global_params.copy()
+        self.trial_params = deepcopy(self.global_params)
 
         # Set up agents on nodes
         print('Setting up agents...')
@@ -76,18 +77,21 @@ class NetworkSimulation(object):
 
         # Set up logging
         logging_interval = 1
-        logger = BaseLoggingAgent(simulation=self, dir_path=self.dir_path, logging_interval=logging_interval)
+        logger = BaseLoggingAgent(environment=self.env, topology=self.G, dir_path=self.dir_path,
+                                  logging_interval=logging_interval)
 
         # Run trial
         self.env.run(until=self.until)
 
         # Save output as pickled objects
-        logger.log_trial_to_files(trial_id)
+        logger.save_trial_state_history(trial_id=trial_id)
 
     def setup_network_agents(self):
         """Initializes agents on nodes of graph and registers them to the SimPy environment"""
         for i in self.G.nodes():
-            agent = self.agent_type(environment=self.env, agent_id=i, state=self.initial_states[i],
-                                    global_topology=self.G, global_params=self.global_params)
-            self.G.node[i]['agent'] = agent
-            self.env.process(agent.run())
+            # agent = self.agent_type(environment=self.env, agent_id=i, state=self.initial_states[i],
+            #                         global_topology=self.G, global_params=self.global_params)
+            self.G.node[i]['agent'] = self.agent_type(environment=self.env, agent_id=i,
+                                                      state=deepcopy(self.initial_states[i]),
+                                                      global_topology=self.G, global_params=self.global_params)
+            # self.env.process(agent.run())
