@@ -73,7 +73,6 @@ class NetworkSimulation(object):
         # Set up environmental agent
         if self.environment_agent_type:
             env_agent = self.environment_agent_type(environment=self.env)
-            self.env.process(env_agent.run())
 
         # Set up logging
         logging_interval = self.logging_interval
