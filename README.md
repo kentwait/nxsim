@@ -1,11 +1,12 @@
-# nxsim
+# [nxsim](https://github.com/kentwait/nxsim)
 
 Nxsim is a Python package for simulating agents connected by any type of network using
 SimPy and Networkx in Python 3.4.
 
 ## Install
 
-    pip3 install nxsim
+    pip3 install nxsim  # from PyPI
+    pip3 install git+git://github.com/kentwait/nxsim.git  # from GitHub
 
 ## Quickstart
 Nxsim provides a framework for doing forward-time simulations of events occurring in a network. It uses Networkx to
@@ -35,7 +36,8 @@ Then, subclass *BaseNetworkAgent* to create your own agent based on your needs.
             # Add your behaviors here
 
 Notice that "agents" in nxsim use the same concepts as "processes" in SimPy 3 except that their interactions can be
-limited by the graph in the simulation environment.
+limited by the graph in the simulation environment. For more information about SimPy, they have a great introduction
+posted on their [website](https://simpy.readthedocs.org/en/latest/simpy_intro/index.html).
 
 Here is a graph-based example:
 
@@ -93,7 +95,14 @@ And plot the number of zombies per time interval using matplotlib:
 
 That's it!
 
-
 ## Acknowledgment
 Thanks to Joé Schaul for bringing [ComplexNetworkSim](https://github.com/jschaul/ComplexNetworkSim) to the world.
 This project is a SimPy 3- and Python 3.4-compatible fork of ComplexNetworkSim.
+
+## Links
+[nxsim - Github](https://github.com/kentwait/nxsim)
+[nxsim - PyPI](https://pypi.python.org/pypi/nxsim)
+[SimPy v3.0 Documentation](https://simpy.readthedocs.org/en/latest/contents.html)
+[Networkx v1.9 Documentation](http://networkx.github.io/documentation/networkx-1.9.1)
+[matplotlib v1.4.3 Documentation](http://matplotlib.org/users/)
+[ComplexNetworkSim Documentation](https://pythonhosted.org/ComplexNetworkSim)
