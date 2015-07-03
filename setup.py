@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     # nxsim:
-    name = 'NxSim',
+    name = 'nxsim',
 
     # Version number:
     version = '0.1.2',
@@ -13,13 +13,13 @@ setup(
 
     # Package
     packages = ['nxsim'],
-    include_package_data = True,
-    url = '',
-    license = 'LICENSE.txt',
-    description = '',
+    url = 'http://pypi.python.org/pypi/nxsim',
+    license = 'LICENSE',
+    description = 'Nxsim is a Python package for simulating agents connected by any type of network using SimPy ' \
+                  'and Networkx in Python 3.4.',
 
     # Dependent packages
-    install_requires = [
+    requires = [
         'simpy',
         'networkx',
     ],
