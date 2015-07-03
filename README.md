@@ -25,7 +25,7 @@ Then, subclass a BaseNetworkAgent to create your own agent based on your needs.
 
     # Just like subclassing a process in SimPy
     class MyAgent(BaseNetworkAgent):
-        def __init__(self, environment, agent_id, state):
+        def __init__(self, environment=None, agent_id=0, state=()):  # Make sure to have these three keyword arguments
             super().__init__(environment=environment, agent_id=agent_id, state=state)
             # Add your own attributes here
 
