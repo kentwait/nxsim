@@ -4,30 +4,30 @@ from .agents import BaseLoggingAgent
 from .agents import NetworkEnvironment
 
 class NetworkSimulation(object):
-    """NetworkSimulation of agents over any type of networkx graph"""
+    """NetworkSimulation of agents over any type of networkx graph
+
+    Parameters
+    ---------
+    topology : networkx.Graph instance
+    agent_type : NetworkAgent subclass
+        Agents will be instantiated using this agent class for each node on the graph
+    states : list
+        List of initial states corresponding to the nodes in the topology. Basic form is a list of integers
+        whose value indicates the state
+
+    environment_agent: NetworkAgent subclass, optional
+        Agent that controls the environment
+    dir_path : str, optional
+        Directory path where to save pickled objects
+    num_trials : int, optional
+        Number of independent simulation runs
+    max_time : int, optional
+        Time how long the simulation should run
+    environment_params : dictionary of globally-shared environmental parameters
+    """
     def __init__(self, topology=None, agent_type=None, states=(),
                  environment_agent=None, dir_path='sim_01', num_trials=3, max_time=100, logging_interval=1.0,
                  **environment_params):
-        """
-        Parameters
-        ---------
-        topology : networkx.Graph instance
-        agent_type : NetworkAgent subclass
-            Agents will be instantiated using this agent class for each node on the graph
-        states : list
-            List of initial states corresponding to the nodes in the topology. Basic form is a list of integers
-            whose value indicates the state
-
-        environment_agent: NetworkAgent subclass, optional
-            Agent that controls the environment
-        dir_path : str, optional
-            Directory path where to save pickled objects
-        num_trials : int, optional
-            Number of independent simulation runs
-        max_time : int, optional
-            Time how long the simulation should run
-        environment_params : dictionary of globally-shared environmental parameters
-        """
         # Check for REQUIRED arguments
         assert topology is not None, TypeError('__init__ missing 1 required keyword argument: \'topology\'')
         assert agent_type is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_type\'')

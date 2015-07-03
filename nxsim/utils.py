@@ -22,31 +22,31 @@ def create_copy_without_data(G):
 # Storing and retrieving objects
 
 def dump(stuff, filename, verbose=True, protocol=3):
-        """Store an object to file by pickling
+    """Store an object to file by pickling
 
-        Parameters
-        ----------
-        stuff : object to be pickled
-        filename : path
-        verbose : bool
-        protocol : 1,2,3 (default = 3)
-            Protocol used by Pickler, higher number means more recent version of Python is needed to read the pickle
-            produced. Default is protocol=3, which only works with Python 3+
+    Parameters
+    ----------
+    stuff : object to be pickled
+    filename : path
+    verbose : bool
+    protocol : 1,2,3 (default = 3)
+        Protocol used by Pickler, higher number means more recent version of Python is needed to read the pickle
+        produced. Default is protocol=3, which only works with Python 3+
 
-        Return
-        ------
-        path
-            Path where pickled object was saved.
-        """
-        filename = os.path.normcase(filename)
-        dir_path = os.path.dirname(filename)
-        if not os.path.exists(dir_path): os.makedirs(dir_path)
-        with open(filename, 'wb') as f:
-            p = pickle.Pickler(f, protocol=protocol)
-            p.dump(stuff)
-        if verbose:
-            print('Written {} items to pickled binary file: {}'.format(len(stuff), filename))
-        return filename
+    Return
+    ------
+    path
+        Path where pickled object was saved.
+    """
+    filename = os.path.normcase(filename)
+    dir_path = os.path.dirname(filename)
+    if not os.path.exists(dir_path): os.makedirs(dir_path)
+    with open(filename, 'wb') as f:
+        p = pickle.Pickler(f, protocol=protocol)
+        p.dump(stuff)
+    if verbose:
+        print('Written {} items to pickled binary file: {}'.format(len(stuff), filename))
+    return filename
 
 def load(filename):
     """Retrieve a pickled object

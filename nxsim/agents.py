@@ -8,27 +8,27 @@ from . import utils
 
 
 class BaseAgent(object):
+    """Base class for nxsim agents
+
+    Parameters
+    ----------
+    environment : simpy.Environment() instance
+        Simulation environment shared by processes
+    agent_id : int, optional
+        Unique identifier
+    state : dict-like, optional
+        State of the Agent. Object must be subscriptable and have an "id" key
+    name : str, optional
+        Descriptive name of the agent
+    state_params : keyword arguments, optional
+        Key-value pairs of other state parameters for the agent
+    """
     #class variables, shared between all instances of this class
     r = random.Random(SEED)
     TIMESTEP_DEFAULT = 1.0
 
     def __init__(self, environment=None, agent_id=None, state=None,
                  name='network_process', **state_params):
-        """Base class for nxsim agents
-
-        Parameters
-        ----------
-        environment : simpy.Environment() instance
-            Simulation environment shared by processes
-        agent_id : int, optional
-            Unique identifier
-        state : dict-like, optional
-            State of the Agent. Object must be subscriptable and have an "id" key
-        name : str, optional
-            Descriptive name of the agent
-        state_params : keyword arguments, optional
-            Key-value pairs of other state parameters for the agent
-        """
         # Check for REQUIRED arguments
         assert environment is not None, TypeError('__init__ missing 1 required keyword argument: \'environment\'. '
                                                   'Cannot be NoneType.')
@@ -192,7 +192,6 @@ class BaseEnvironmentAgent(BaseAgent):
         return NotImplementedError()
 
 
-# CHANGE LOGGING BEHAVIOR BECAUSE IT DOES NOT WORK!
 class BaseLoggingAgent(BaseAgent):
     """Log states of agents and graph topology
 
