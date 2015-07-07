@@ -93,7 +93,10 @@ And plot the number of zombies per time interval using matplotlib:
     zombie_census = [sum([1 for node_id, state in g.items() if state['id'] == 1]) for t,g in trial.items()]
     plt.plot(zombie_census)
 
-That's it!
+And that's it!
+
+## Note
+This package is still under development. If you encounter a bug, please file an issue at [https://github.com/kentwait/nxsim/issues](https://github.com/kentwait/nxsim/issues) to get it resolved.
 
 ## Acknowledgment
 Thanks to Joé Schaul for bringing [ComplexNetworkSim](https://github.com/jschaul/ComplexNetworkSim) to the world.
