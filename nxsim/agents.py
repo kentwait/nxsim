@@ -255,3 +255,19 @@ class BaseLoggingAgent(BaseAgent):
         return os.path.join(dir_path, '{basename}.{trial_id}.{suffix}.{pickle_extension}'.format(
             basename=basename, trial_id=trial_id, suffix='state', pickle_extension=pickle_extension,)
         )
+
+class State(object):
+    """
+    A state is an encapsulation of a behavior to be associated with an agent.
+    """
+    def __init__(self, name, description=None):
+        self.name = name
+        self.description = description
+
+    def active(self):
+        """
+        Behavior when the agent is in the active state during one time unit.
+        """
+        # Add custom behavior here.
+        # For example, while infected, do intrahost evo
+        return NotImplementedError()
