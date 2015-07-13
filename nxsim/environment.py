@@ -2,25 +2,59 @@ import simpy
 import networkx as nx
 
 class Environment(simpy.Environment):
-    def __init__(self, structure=None, initial_time=0):
-        super().__init__(initial_time=initial_time)
-        self.structure = structure
-        if self.structure: self.build_structure()  # TODO: make a setter method
-
-    def build_structure(self):
+    def current(self):
         """
-        Place agents and resources into the specific structure of the environment
+        Return a snapshot of the current state of the entire simulation environment.
         """
         pass
+
+    def list_agents(self):
+        pass
+
+    def list_all_agents(self):
+        pass
+
+    def add_agent(self, agent):
+        pass
+
+    def remove_agent(self, agent):
+        pass
+
+    def __contains__(self, agent):
+        pass
+
+
+class SpatialEnvironment(Environment):
+    def __init__(self, dimensions, initial_time=0, **environment_params):
+        super().__init__(initial_time=initial_time)
+        self.structure = dimensions  # sparse matrix?
 
 
 class NetworkEnvironment(Environment):
-    def __init__(self, topology, initial_time=0,):
-        super().__init__(structure=topology, initial_time=initial_time)
-        assert isinstance(topology, nx.Graph)
-        self.G = nx.Graph(topology)  # converts to undirected graph, # TODO: make a setter method
+    """Subclass of simpy.Environment that uses a graph to control the spatial configuration of agent processes.
 
+    Parameters
+    ---------
+    topology : Networkx Graph
+    initial_time : int
+    """
+    def __init__(self, graph, initial_time=0, **environment_params):
+        super().__init__(initial_time=initial_time)
+        assert isinstance(graph, nx.Graph)
+        self.structure = nx.Graph(graph)  # converts to undirected graph
+        self.agents = []
 
-class Structure(object):
-    def __init__(self):
+    def list_agents(self):
         pass
+
+    def list_all_agents(self):
+        pass
+
+    def add_agent(self, agent, node):
+        pass
+
+    def remove_agent(self, agent):
+        pass
+
+    def __contains__(self, agent):
+        return any(agent.uid == a.uid for a in self.agents)

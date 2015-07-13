@@ -23,101 +23,53 @@ class BaseAgent(object):
     state_params : keyword arguments, optional
         Key-value pairs of other state parameters for the agent
     """
-    #class variables, shared between all instances of this class
-    r = random.Random(SEED)
-    TIMESTEP_DEFAULT = 1.0
-
-    def __init__(self, environment=None, agent_id=None, state=None,
-                 name='network_process', **state_params):
-        # Check for REQUIRED arguments
-        assert environment is not None, TypeError('__init__ missing 1 required keyword argument: \'environment\'. '
-                                                  'Cannot be NoneType.')
+    def __init__(self, uid, state=None, environment=None, name='', description=''):
         # Initialize agent parameters
-        self.id = agent_id
-        self.state = state
+        self.uid = uid
         self.name = name
-        self.state_params = state_params
-
-        # Global parameters
-        self.global_topology = environment.G
-        self.environment_params = environment.environment_params
-
-        # Register agent to environment
-        self.env = environment
-        self.action = self.env.process(self.run())  # initialize every time an instance of the agent is created
+        self.description = description
+        self.state = state  # state machine - can only have one state at a time
+        self.env = None
+        if environment: self.register(environment)
 
     def run(self):
         """Subclass must specify a generator method!"""
         raise NotImplementedError(self)
 
-    def get_all_nodes(self):
-        """Returns list of nodes in the network"""
-        return self.global_topology.nodes()
+    def register(self, environment):
+        self.env = environment
+        self.env.process(self.run())
 
-    def get_agents(self, state_id=None, limit_neighbors=False):
-        """Returns list of agents based on their state and connectedness
+    def kill(self):
+        pass
 
-        Parameters
-        ----------
-        state_id : int, str, or array-like, optional
-            Used to select agents that have the same specified "state". If state = None, returns all agents regardless
-            of its current state
-        limit_neighbors : bool, optional
-            Returns agents based on whether they are connected to this agent or not. If limit_neighbors = False,
-            returns all agents whether or not it is directly connected to this agent
-        """
-        if limit_neighbors:
-            agents = self.global_topology.neighbors(self.id)
-        else:
-            agents = self.get_all_nodes()
+class BaseSpatialAgent(BaseAgent):
+    def __init__(self, uid, environment=None, **kwargs):
+        super().__init__(uid, environment=environment, **kwargs)
+        self.position = None
 
-        if state_id is None:
-            return [self.global_topology.node[_]['agent'] for _ in agents]  # return all regardless of state
-        else:
-            return [self.global_topology.node[_]['agent'] for _ in agents
-                    if self.global_topology.node[_]['agent'].state['id'] == state_id]
+    def adjacent_agents(self, radius_limit=10, state=None):
+        pass
 
-    def get_all_agents(self, state_id=None):
-        """Returns list of agents based only on their state"""
-        return self.get_agents(state_id=state_id, limit_neighbors=False)
-
-    def get_neighboring_agents(self, state_id=None):
-        """Returns list of neighboring agents based on their state"""
-        return self.get_agents(state_id=state_id, limit_neighbors=True)
-
-    def get_neighboring_nodes(self):
-        """Returns list of neighboring nodes"""
-        return self.global_topology.neighbors(self.id)
-
-    def get_agent(self, agent_id):
-        """Returns agent with the specified id"""
-        return self.global_topology.node[agent_id]['agent']
-
-    def remove_node(self, agent_id):
-        """Remove specified node from the network
-
-        Parameters
-        ----------
-        agent_id : int
-
-        """
-        self.global_topology.remove_node(agent_id)
-
-    def die(self):
-        """Remove this node from the network"""
-        self.remove_node(self.id)
+    def kill(self):
+        pass
 
 
 class BaseNetworkAgent(BaseAgent):
-    def __init__(self, environment=None, agent_id=None, state=None,
-                 name='network_agent', **state_params):
-        assert agent_id is not None, TypeError('__init__ missing 1 required keyword argument: \'agent_id\'. '
-                                               'Cannot be NoneType.')
-        assert state is not None, TypeError('__init__ missing 1 required keyword argument: \'state\'. '
-                                            'Cannot be NoneType.')
-        super().__init__(environment=environment, agent_id=agent_id, state=state,
-                         name=name, **state_params)
+    def __init__(self, uid, environment=None, **kwargs):
+        super().__init__(uid, environment=environment, **kwargs)
+        self.node = None
 
+    def adjacent_agents(self, state=None):
+        pass
+
+    def register(self, environment, node):
+        super().register(environment)
+        self.env.add_agent(self, node)
+
+    def kill(self):
+        # TODO : remove self, remove from graph
+        pass
 
 class BaseEnvironmentAgent(BaseAgent):
     """Base class for environment agents
@@ -256,6 +208,7 @@ class BaseLoggingAgent(BaseAgent):
             basename=basename, trial_id=trial_id, suffix='state', pickle_extension=pickle_extension,)
         )
 
+
 class State(object):
     """
     A state is an encapsulation of a behavior to be associated with an agent.
@@ -264,7 +217,7 @@ class State(object):
         self.name = name
         self.description = description
 
-    def active(self):
+    def run(self):
         """
         Behavior when the agent is in the active state during one time unit.
         """
