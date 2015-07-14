@@ -34,6 +34,24 @@ class BaseEnvironment(simpy.Environment):
         """
         return deepcopy(self)
 
+    def list(self, state=None):
+        """Returns list of agents based on their state and connectedness
+
+        Parameters
+        ----------
+        state : State object, optional
+            Used to select agents that have the same specified "state". If state is None, returns all agents regardless
+            of its current state
+
+        Returns
+        -------
+        list
+        """
+        if state is None:
+            return self.agents  # return all regardless of state
+        else:
+            return [agent for agent in self.agents if agent.state is state]
+
     def __len__(self):
         """Returns number of agents registered in the environment"""
         return len(self.structure)
@@ -81,24 +99,6 @@ class NetworkEnvironment(BaseEnvironment):
     @agents.getter
     def agents(self):
         return [self.structure.node[i]['agent'] for i in self.structure.nodes()]
-
-    def list(self, state=None):
-        """Returns list of agents based on their state and connectedness
-
-        Parameters
-        ----------
-        state : State object, optional
-            Used to select agents that have the same specified "state". If state is None, returns all agents regardless
-            of its current state
-
-        Returns
-        -------
-        list
-        """
-        if state is None:
-            return self.agents  # return all regardless of state
-        else:
-            return [agent for agent in self.agents if agent.state is state]
 
     def __len__(self):
         """Returns number of agents registered in the environment"""

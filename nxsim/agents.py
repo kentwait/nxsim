@@ -130,7 +130,7 @@ class State(object):
 
     @property
     def behavior(self):
-        return self._behavior
+        return self._behavior()
 
     @behavior.setter
     def behavior(self, func):
@@ -143,10 +143,10 @@ class State(object):
 
     def static(self):
         """Empty method for static states"""
-        pass
+        return True
 
     def __call__(self, *args, **kwargs):
-        return self.active(*args, **kwargs)
+        return self.behavior()
 
     def __repr__(self):
         return self.name
