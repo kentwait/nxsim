@@ -1,16 +1,30 @@
-class BaseMonitor(BaseAgent):
-    """Log states of agents and graph topology
+from .agents import BaseAgent
+import numpy
 
-    Parameters
-    ----------
-    environment : NetworkEnvironment instance
-    dir_path : directory path, str, optional (default = 'sim_01')
-    logging_interval : int, optional (default = 1)
-    base_filename : str, optional
-    pickle_extension : str, optional
-    state_history_suffix : str, optional
+class BaseMonitor(object):
+    """Monitors agents and the simulation environment"""
+    def __init__(self, environment, interval, **kwargs):
+        self.env = environment
+        self.interval = interval
+        self._variables = {k: v for k, v in kwargs.items()}
+        self.env.process(self.run())
 
+    def run(self):
+        while True:
+            # Do omething
+            yield self.env.timeout(self.interval)
+
+
+
+class StateMonitor(BaseMonitor):
+    """Counts the number of states per logging interval
     """
+    def __init__(self):
+        super().__init__()
+
+
+
+class LoggingAgent(BaseAgent)
     def __init__(self, environment=None, dir_path='sim_01', logging_interval=1,
                  base_filename='log', pickle_extension='pickled', state_history_suffix='states'):
         super().__init__(environment=environment, agent_id=None, state=None, name='network_process')

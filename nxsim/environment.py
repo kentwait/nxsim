@@ -1,5 +1,6 @@
 import simpy
 import networkx as nx
+from copy import deepcopy
 
 class BaseEnvironment(simpy.Environment):
     """The environment behaves like a dictionary of agents.
@@ -31,7 +32,7 @@ class BaseEnvironment(simpy.Environment):
         """
         Return a snapshot of the current state of the entire simulation environment.
         """
-        return NotImplementedError()
+        return deepcopy(self)
 
     def __len__(self):
         """Returns number of agents registered in the environment"""
@@ -65,10 +66,10 @@ class NetworkEnvironment(BaseEnvironment):
 
     Parameters
     ---------
-    topology : Networkx Graph
+    graph : Networkx Graph
     initial_time : int
     """
-    def __init__(self, graph, initial_time=0, **environment_params):
+    def __init__(self, graph, initial_time=0):
         super().__init__(initial_time=initial_time)
         assert isinstance(graph, nx.Graph)
         self.structure = nx.Graph(graph)  # converts to undirected graph
@@ -80,12 +81,6 @@ class NetworkEnvironment(BaseEnvironment):
     @agents.getter
     def agents(self):
         return [self.structure.node[i]['agent'] for i in self.structure.nodes()]
-
-    def current(self):
-        """
-        Return a snapshot of the current state of the entire simulation environment.
-        """
-        return NotImplementedError()
 
     def list(self, state=None):
         """Returns list of agents based on their state and connectedness
@@ -124,4 +119,3 @@ class NetworkEnvironment(BaseEnvironment):
 
     def __delitem__(self, node_id):
         self.structure.remove_node(node_id)
-        # del self  # is this valid?

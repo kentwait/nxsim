@@ -55,12 +55,13 @@ class BaseAgent(object):
         ----------
         environment : Environment object
         """
-        self._env = environment
         uid = id if id else self.uid
+        self._env = environment
         self._env[uid] = self
 
     def kill(self):
-        pass
+        self.env.__delitem__(self.uid)
+        # del self
 
 
 class BaseNetworkAgent(BaseAgent):
@@ -116,23 +117,39 @@ class BaseNetworkAgent(BaseAgent):
         self._env = environment
         self._env[node.id] = self
 
-    def kill(self):
-        # TODO : remove self, remove from graph
-        self.env.remove_agent(self.uid)
-
 
 class State(object):
     """
     A state is an encapsulation of a behavior to be associated with an agent.
     """
-    def __init__(self, name, description=None):
+    def __init__(self, name, description=None, behavior=None):
+        self._behavior = self.static()
         self.name = name
         self.description = description
+        self.active = behavior
 
-    def run(self):
-        """
-        Behavior when the agent is in the active state during one time unit.
-        """
-        # Add custom behavior here.
-        # For example, while infected, do intrahost evo
-        return NotImplementedError()
+    @property
+    def behavior(self):
+        return self._behavior
+
+    @behavior.setter
+    def behavior(self, func):
+        if func is None:
+            self._behavior = self.static()
+        elif callable(func):
+            self._behavior = func
+        else:
+            raise TypeError('Passed object <func> must be callable.')
+
+    def static(self):
+        """Empty method for static states"""
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return self.active(*args, **kwargs)
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
