@@ -2,8 +2,9 @@ import os
 import random
 from copy import deepcopy
 from collections import OrderedDict
+import networkx as nx
 from .constants import *
-from .environment import NetworkEnvironment
+from .environment import Environment, NetworkEnvironment
 from . import utils
 
 
@@ -24,24 +25,110 @@ class BaseAgent(object):
         Key-value pairs of other state parameters for the agent
     """
     def __init__(self, uid, state=None, environment=None, name='', description=''):
+        # Properties
+        self._env = None
+        self._state = None
+
         # Initialize agent parameters
         self.uid = uid
         self.name = name
         self.description = description
         self.state = state  # state machine - can only have one state at a time
-        self.env = None
-        if environment: self.register(environment)
+        self.env = environment
+
+    @property  # TODO : Make a descriptor class for this
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, state):
+        assert isinstance(state, State)
+        self._state = state
+
+    @property
+    def env(self):
+        return self._env
+
+    @env.setter
+    def env(self, environment):
+        assert isinstance(environment, Environment)
+        self._env = environment
 
     def run(self):
         """Subclass must specify a generator method!"""
         raise NotImplementedError(self)
 
     def register(self, environment):
+        """Register agent to the simulation environment.
+
+        Parameters
+        ----------
+        environment : Environment object
+        """
         self.env = environment
         self.env.process(self.run())
 
     def kill(self):
         pass
+
+
+class BaseNetworkAgent(BaseAgent):
+    """Base class for network agents
+
+    Parameters
+    ----------
+    uid : int
+    environment : Environment object
+    node : networkx.Graph.node
+    """
+    def __init__(self, uid, state=None, environment=None, **kwargs):
+        super().__init__(uid, state=state, environment=environment, **kwargs)
+        # Properties
+        self._node = None
+
+    @property
+    def node(self):
+        return self._node
+
+    @node.setter
+    def node(self, node):
+        assert isinstance(node, nx.Graph.node)
+        self._node = node
+
+    def adjacent_agents(self, state=None):
+        """Lists agents directly connected to this agent.
+
+        Parameters
+        ----------
+        state : State object
+
+        Returns
+        -------
+        list
+        """
+        neighbors = [self.env.structure.node[i]['agent'] for i in self.env.structure.neighbors(self.node)
+                     if self.env.structure.node[i]['agent'].state is state]
+        if state:
+            return [neighbor for neighbor in neighbors if neighbors.state is state]
+        else:
+            return neighbors
+
+    def register(self, environment, node):
+        """Register agent to the network simulation environment.
+
+        Parameters
+        ----------
+        environment : Environment object
+        node : networkx.Graph.node
+        """
+        super().register(environment)
+        self.node = node
+        self.env.add_agent(self, node)
+
+    def kill(self):
+        # TODO : remove self, remove from graph
+        self.env.remove_agent(self.uid)
+
 
 class BaseSpatialAgent(BaseAgent):
     def __init__(self, uid, environment=None, **kwargs):
@@ -53,95 +140,6 @@ class BaseSpatialAgent(BaseAgent):
 
     def kill(self):
         pass
-
-
-class BaseNetworkAgent(BaseAgent):
-    def __init__(self, uid, environment=None, **kwargs):
-        super().__init__(uid, environment=environment, **kwargs)
-        self.node = None
-
-    def adjacent_agents(self, state=None):
-        pass
-
-    def register(self, environment, node):
-        super().register(environment)
-        self.env.add_agent(self, node)
-
-    def kill(self):
-        # TODO : remove self, remove from graph
-        pass
-
-class BaseEnvironmentAgent(BaseAgent):
-    """Base class for environment agents
-
-    Parameters
-    ----------
-    simulation : NetworkSimulation class
-    name : str, optional
-        Descriptive name for the environment agent
-    state_params : keyword arguments, optional
-
-    """
-
-    def __init__(self, environment=None, name='environment_process', **state_params):
-        assert isinstance(environment, NetworkEnvironment)
-        super().__init__(environment=environment, agent_id=None, state=None,
-                         name=name, **state_params)
-
-    def add_node(self, agent_type=None, state=None, name='network_process', **state_params):
-        """Add a new node to the current network
-
-        Parameters
-        ----------
-        agent_type : NetworkAgent subclass
-            Agent in the new node will be instantiated using this agent class
-        state : object
-            State of the Agent, this may be an integer or string or any other
-        name : str, optional
-            Descriptive name of the agent
-        state_params : keyword arguments, optional
-            Key-value pairs of other state parameters for the agent
-
-        Return
-        ------
-        int
-            Agent ID of the new node
-        """
-        agent_id = int(len(self.global_topology.nodes()))
-        agent = agent_type(self.env, agent_id=agent_id, state=state, name=name, **state_params)
-        self.global_topology.add_node(agent_id, {'agent': agent})
-        return agent_id
-
-
-    def add_edge(self, agent_id1, agent_id2, edge_attr_dict=None, *edge_attrs):
-        """
-        Add an edge between agent_id1 and agent_id2. agent_id1 and agent_id2 correspond to Networkx node IDs.
-
-        This is a wrapper for the Networkx.Graph method `.add_edge`.
-
-        Agents agent_id1 and agent_id2 will be automatically added if they are not already present in the graph.
-        Edge attributes can be specified using keywords or passing a dictionary with key-value pairs
-
-        Parameters
-        ----------
-        agent_id1, agent_id2 : nodes
-            Nodes (as defined by Networkx) can be any hashable type except NoneType
-        edge_attr_dict : dictionary, optional (default = no attributes)
-            Dictionary of edge attributes. Assigns values to specified keyword attributes and overwrites them if already
-            present.
-        edge_attrs : keyword arguments, optional
-            Edge attributes such as labels can be assigned directly using keyowrd arguments
-        """
-        if agent_id1 in self.global_topology.nodes(data=False):
-            if agent_id2 in self.global_topology.nodes(data=False):
-                self.global_topology.add_edge(agent_id1, agent_id2, edge_attr_dict=edge_attr_dict, *edge_attrs)
-            else:
-                raise ValueError('\'agent_id2\'[{}] not in list of existing agents in the network'.format(agent_id2))
-        else:
-            raise ValueError('\'agent_id1\'[{}] not in list of existing agents in the network'.format(agent_id1))
-
-    def log_topology(self):
-        return NotImplementedError()
 
 
 class BaseLoggingAgent(BaseAgent):

@@ -1,37 +1,66 @@
 import simpy
 import networkx as nx
 
-class Environment(simpy.Environment):
+class BaseEnvironment(simpy.Environment):
+    """The environment behaves like a dictionary of agents.
+
+    In BaseEnvironment, there is no positional structure to the arrangement of the agents, so the agents are stored as
+    a key-value pair in a dictionary. The key corresponds to an arbitrary label for the agent for easy retrieval.
+
+    Parameters
+    ----------
+    initial_time : int
+        Specifies the time unit to start with, inherited from simpy.Environment
+    """
+    def __init__(self, initial_time=0):
+        # Properties
+        self._agents = None
+
+        super().__init__(initial_time=initial_time)
+        self.structure = dict()
+
+    @property
+    def agents(self):
+        return self._agents
+
+    @agents.getter
+    def agents(self):
+        return self.structure.values()
+
     def current(self):
         """
         Return a snapshot of the current state of the entire simulation environment.
         """
-        pass
+        return NotImplementedError()
 
-    def list_agents(self):
-        pass
-
-    def list_all_agents(self):
-        pass
-
-    def add_agent(self, agent):
-        pass
-
-    def remove_agent(self, agent):
-        pass
+    def __len__(self):
+        """Returns number of agents registered in the environment"""
+        return len(self.structure)
 
     def __contains__(self, agent):
-        pass
+        """Returns True if the agent is registered in this environment"""
+        return any(a is agent for a in self.agents)
+
+    def __getitem__(self, key):
+        """Returns the agent associated with this key"""
+        return self.structure[key]
+
+    def __setitem__(self, key, agent):
+        """Agent is registered into this environment"""
+        self.structure[key] = agent
+
+    def __delitem__(self, key):
+        """Agent is removed from this environment"""
+        del self.structure[key]
+
+    def __repr__(self):
+        return repr(self.structure)
 
 
-class SpatialEnvironment(Environment):
-    def __init__(self, dimensions, initial_time=0, **environment_params):
-        super().__init__(initial_time=initial_time)
-        self.structure = dimensions  # sparse matrix?
+class NetworkEnvironment(BaseEnvironment):
+    """An environment that uses a graph to control the spatial configuration of agents.
 
-
-class NetworkEnvironment(Environment):
-    """Subclass of simpy.Environment that uses a graph to control the spatial configuration of agent processes.
+    This is a subclass of BaseEnvironment. Thus it likewise also acts like a dictionary of agents.
 
     Parameters
     ---------
@@ -42,19 +71,55 @@ class NetworkEnvironment(Environment):
         super().__init__(initial_time=initial_time)
         assert isinstance(graph, nx.Graph)
         self.structure = nx.Graph(graph)  # converts to undirected graph
-        self.agents = []
 
-    def list_agents(self):
-        pass
+    @property
+    def agents(self):
+        return self._agents
 
-    def list_all_agents(self):
-        pass
+    @agents.getter
+    def agents(self):
+        return [self.structure.node[i]['agent'] for i in self.structure.nodes()]
 
-    def add_agent(self, agent, node):
-        pass
+    def current(self):
+        """
+        Return a snapshot of the current state of the entire simulation environment.
+        """
+        return NotImplementedError()
 
-    def remove_agent(self, agent):
-        pass
+    def list(self, state=None):
+        """Returns list of agents based on their state and connectedness
+
+        Parameters
+        ----------
+        state : State object, optional
+            Used to select agents that have the same specified "state". If state is None, returns all agents regardless
+            of its current state
+
+        Returns
+        -------
+        list
+        """
+        if state is None:
+            return self.agents  # return all regardless of state
+        else:
+            return [agent for agent in self.agents if agent.state is state]
+
+    def __len__(self):
+        """Returns number of agents registered in the environment"""
+        return len(self.agents)
 
     def __contains__(self, agent):
-        return any(agent.uid == a.uid for a in self.agents)
+        """Returns True if the agent is registered in this environment"""
+        return any(a.uid == agent.uid for a in self.agents)
+
+    def __getitem__(self, node_id):
+        """Returns the agent given its associated node ID"""
+        return self.structure.node[node_id]['agent']
+
+    def __setitem__(self, node_id, agent):
+        # TODO : check if node id is present in the network
+        self.structure[node_id]['agent'] = agent
+
+    def __delitem__(self, node_id):
+        self.structure.remove_node(node_id)
+        # del self  # is this valid?
