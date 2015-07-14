@@ -48,6 +48,7 @@ class BaseEnvironment(simpy.Environment):
     def __setitem__(self, key, agent):
         """Agent is registered into this environment"""
         self.structure[key] = agent
+        self.process(agent.run())
 
     def __delitem__(self, key):
         """Agent is removed from this environment"""
@@ -119,6 +120,7 @@ class NetworkEnvironment(BaseEnvironment):
     def __setitem__(self, node_id, agent):
         # TODO : check if node id is present in the network
         self.structure[node_id]['agent'] = agent
+        self.process(agent.run())
 
     def __delitem__(self, node_id):
         self.structure.remove_node(node_id)
