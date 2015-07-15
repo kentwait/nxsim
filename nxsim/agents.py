@@ -1,4 +1,5 @@
-import types
+from copy import deepcopy
+
 
 class BaseAgent(object):
     """Base class for nxsim agents
@@ -34,8 +35,15 @@ class BaseAgent(object):
 
     @state.setter
     def state(self, state):
-        assert isinstance(state, State)
-        self._state = state
+        if isinstance(state, State):
+            self._state = deepcopy(state)  # make a copy of the original state
+            self._state._agent = self  # register agent to state
+
+    @state.deleter
+    def state(self):
+        if self.state is not None:
+            self._state._agent = None
+            self._state = None
 
     @property
     def env(self):
@@ -47,23 +55,39 @@ class BaseAgent(object):
     #     self._env = environment
 
     def run(self):
-        """Subclass must specify a generator method!"""
+        """Subclass must specify a generator method!
+
+        Note that if the agent currently has a "state", this class can access state attributes and methods. Similarly,
+        if this agent is registered to an environment, it will have access to the environemnt's attributes and methods.
+        """
         raise NotImplementedError(self)
 
-    def register(self, environment, id=None):
+    def register(self, environment, env_id=None):
         """Register agent to the simulation environment.
 
         Parameters
         ----------
         environment : Environment object
+        env_id : Unique identifier in the environment
         """
-        uid = id if id else self.uid
+        uid = env_id if env_id else self.uid
         self._env = environment
         self._env[uid] = self
+
+    def deregister(self):
+        """Opposite of the register method. Calling this will remove the agent from its current environment.
+
+        """
+        pass
 
     def kill(self):
         self.env.__delitem__(self.uid)
         # del self
+
+    def __call__(self):
+        if self.state is not None:
+            self.state.run()
+        self.run()
 
 
 class BaseNetworkAgent(BaseAgent):
@@ -86,8 +110,7 @@ class BaseNetworkAgent(BaseAgent):
 
     @node.setter
     def node(self, node):
-         # TODO : check if node is a networkx node
-         self._node = node
+        self._node = node  # TODO : check if node is a networkx node
 
     def adjacent_agents(self, state=None):
         """Lists agents directly connected to this agent.
@@ -124,19 +147,40 @@ class State(object):
     """
     A state is an encapsulation of a behavior to be associated with an agent.
     """
-    def __init__(self, name, description=None, behavior=None):
+    def __init__(self, name, description=None, **state_variables):
+        self._agent = None
         self.name = name
         self.description = description
-        if behavior is not None:
-            if callable(behavior):
-                self.behavior = types.MethodType(behavior, self)
+        self.variables = state_variables
 
-    def behavior(self):
-        """Empty method for static states (default)"""
+    @property
+    def agent(self):
+        return self._agent
+
+    @agent.setter
+    def agent(self, agent):
+        if isinstance(agent, BaseAgent):
+            self._agent = agent
+            self._agent._state = self
+
+    @agent.deleter
+    def agent(self):
+        if self.agent is not None:
+            self._agent._state = None
+            self._agent = None
+
+    def run(self):
+        """Empty method for static states (default)
+
+        To make custom behaviors, sublclass this and override the `run` method. Note that when associated to an agent,
+        this class has access to agent methods and attributes. To pass other data, use the `self.variables` attribute
+        dictionary.
+
+        """
         pass
 
-    def __call__(self, *args, **kwargs):
-        return self.behavior()
+    def __call__(self):
+        self.run()
 
     def __repr__(self):
         return self.name

@@ -2,6 +2,7 @@ import simpy
 import networkx as nx
 from copy import deepcopy
 
+
 class BaseEnvironment(simpy.Environment):
     """The environment behaves like a dictionary of agents.
 
@@ -14,17 +15,10 @@ class BaseEnvironment(simpy.Environment):
         Specifies the time unit to start with, inherited from simpy.Environment
     """
     def __init__(self, initial_time=0):
-        # Properties
-        self._agents = None
-
         super().__init__(initial_time=initial_time)
         self.structure = dict()
 
     @property
-    def agents(self):
-        return self._agents
-
-    @agents.getter
     def agents(self):
         return self.structure.values()
 
@@ -94,7 +88,7 @@ class NetworkEnvironment(BaseEnvironment):
 
     @property
     def agents(self):
-        return self._agents
+        return self.agents
 
     @agents.getter
     def agents(self):
