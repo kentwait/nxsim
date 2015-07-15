@@ -2,6 +2,7 @@ import simpy
 import networkx as nx
 from copy import deepcopy
 
+
 class BaseEnvironment(simpy.Environment):
     """The environment behaves like a dictionary of agents.
 
@@ -137,6 +138,21 @@ class NetworkEnvironment(BaseEnvironment):
 
 
 def build_simulation(agent_constructor, env_constructor, structure, initial_state=None, initial_time=0):
+    """Creates an environment given a particular structure and populating it with agents and a particular initial state
+
+    Parameter
+    ---------
+    agent_constructor : BaseAgent class or subclass
+    env_constructor : BaseEnvironment class or subclass
+    structure : structure object
+    initial_state : State object or None, optional (default = None)
+    initial_time = int, optional (default = 0)
+
+    Returns
+    -------
+    Environment object
+
+    """
     # Set-up trial environment
     env = env_constructor(structure=structure, initial_time=initial_time)
     # Populate environment with default agent
