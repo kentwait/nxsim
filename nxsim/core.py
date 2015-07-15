@@ -16,7 +16,7 @@ class BaseEnvironment(simpy.Environment):
     def __init__(self, structure=None, initial_time=0):
         self.init_time = initial_time
         super().__init__(initial_time=initial_time)
-        self.structure = dict() if dictionary is None else dictionary
+        self.structure = dict() if structure is None else structure
         self.possible_states = set()
         self.monitors = list()
         self.resources = list()
@@ -101,7 +101,7 @@ class NetworkEnvironment(BaseEnvironment):
     """
     def __init__(self, structure=None, initial_time=0):
         super().__init__(initial_time=initial_time)
-        self.structure = nx.Graph(graph)  # instantiates an empty graph
+        self.structure = nx.Graph(structure)  # instantiates an empty graph
 
     @property
     def agents(self):
@@ -134,6 +134,7 @@ class NetworkEnvironment(BaseEnvironment):
 
     def __delitem__(self, node_id):
         self.structure.remove_node(node_id)
+
 
 def build_simulation(agent_constructor, env_constructor, structure, initial_state=None, initial_time=0):
     # Set-up trial environment

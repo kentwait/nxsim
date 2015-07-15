@@ -1,13 +1,6 @@
 import networkx as nx
 from . import NetworkEnvironment
 
-def build_simulation(agent_constructor, env_constructor, structure, initial_state=None, initial_time=0):
-    # Set-up trial environment
-    env = env_constructor(structure=structure, initial_time=initial_time)
-    # Populate environment with default agent
-    env.populate(agent_constructor, initial_state=initial_state)
-    return env
-
 # class NetworkSimulation(object):
 #     """NetworkSimulation of agents over any type of networkx graph
 #

@@ -39,7 +39,6 @@ class StateMonitor(BaseMonitor):
                 values = [self.tally[state][index] for state in self.states]
                 print(time, *values, sep='\t', file=f)
 
-class Environment
 
 # class LoggingAgent(BaseAgent)
 #     def __init__(self, environment=None, dir_path='sim_01', logging_interval=1,
