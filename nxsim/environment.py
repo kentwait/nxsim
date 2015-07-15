@@ -13,10 +13,13 @@ class BaseEnvironment(simpy.Environment):
     initial_time : int
         Specifies the time unit to start with, inherited from simpy.Environment
     """
-    def __init__(self, dictionary=None, initial_time=0):
+    def __init__(self, structure=None, initial_time=0):
         self.init_time = initial_time
         super().__init__(initial_time=initial_time)
         self.structure = dict() if dictionary is None else dictionary
+        self.possible_states = set()
+        self.monitors = list()
+        self.resources = list()
 
     @property
     def agents(self):
@@ -46,7 +49,7 @@ class BaseEnvironment(simpy.Environment):
         else:
             return [agent for agent in self.agents if agent.state is state]
 
-    def populate(self, agent_constructor):
+    def populate(self, agent_constructor, initial_state=None):
         """Populates slots in the current structure with agents.
 
         This assumes that `structure` is iterable and has a `len` value. The number of agents constructed are equal
@@ -59,7 +62,7 @@ class BaseEnvironment(simpy.Environment):
         """
         if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
             for i in self.structure.keys():
-                self.structure[i] = agent_constructor(i, state=None, environment=self)
+                self.structure[i] = agent_constructor(i, state=initial_state, environment=self)
 
     def __len__(self):
         """Returns number of agents registered in the environment"""
@@ -96,7 +99,7 @@ class NetworkEnvironment(BaseEnvironment):
     graph : Networkx Graph
     initial_time : int
     """
-    def __init__(self, graph=None, initial_time=0):
+    def __init__(self, structure=None, initial_time=0):
         super().__init__(initial_time=initial_time)
         self.structure = nx.Graph(graph)  # instantiates an empty graph
 
@@ -104,10 +107,10 @@ class NetworkEnvironment(BaseEnvironment):
     def agents(self):
         return [self.structure.node[i]['agent'] for i in self.structure.nodes()]
 
-    def populate(self, agent_constructor):
+    def populate(self, agent_constructor, initial_state=None):
         if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
             for i in self.structure.nodes():
-                self.structure.node[i]['agent'] = agent_constructor(i, state=None, environment=self)
+                self.structure.node[i]['agent'] = agent_constructor(i, state=initial_state, environment=self)
 
     def add_edges(self, agent_1, agent_2):
         pass
@@ -131,3 +134,10 @@ class NetworkEnvironment(BaseEnvironment):
 
     def __delitem__(self, node_id):
         self.structure.remove_node(node_id)
+
+def build_simulation(agent_constructor, env_constructor, structure, initial_state=None, initial_time=0):
+    # Set-up trial environment
+    env = env_constructor(structure=structure, initial_time=initial_time)
+    # Populate environment with default agent
+    env.populate(agent_constructor, initial_state=initial_state)
+    return env

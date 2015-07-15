@@ -36,6 +36,7 @@ class BaseAgent(object):
         if isinstance(state, State):
             self._state = deepcopy(state)  # make a copy of the original state
             self._state._agent = self  # register agent to state
+            self._env.possible_states.add(state)
 
     @state.deleter
     def state(self):
@@ -181,18 +182,6 @@ class State(object):
     @property
     def agent(self):
         return self._agent
-
-    @agent.setter
-    def agent(self, agent):
-        if isinstance(agent, BaseAgent):
-            self._agent = agent
-            self._agent._state = self
-
-    @agent.deleter
-    def agent(self):
-        if self.agent is not None:
-            self._agent._state = None
-            self._agent = None
 
     def run(self):
         """Empty method for static states (default)

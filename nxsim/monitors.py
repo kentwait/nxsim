@@ -1,8 +1,12 @@
 class BaseMonitor(object):
     """Monitors agents and the simulation environment"""
-    def __init__(self, environment, interval=1):
+    def __init__(self, environment, interval=None):
         self.env = environment
         self.interval = interval
+        self.register()
+
+    def register(self):
+        self.env.monitors.append(self)
         self.env.process(self.run())
 
     def run(self):
@@ -35,6 +39,7 @@ class StateMonitor(BaseMonitor):
                 values = [self.tally[state][index] for state in self.states]
                 print(time, *values, sep='\t', file=f)
 
+class Environment
 
 # class LoggingAgent(BaseAgent)
 #     def __init__(self, environment=None, dir_path='sim_01', logging_interval=1,
