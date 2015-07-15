@@ -2,7 +2,6 @@ import simpy
 import networkx as nx
 from copy import deepcopy
 
-
 class BaseEnvironment(simpy.Environment):
     """The environment behaves like a dictionary of agents.
 
@@ -14,10 +13,10 @@ class BaseEnvironment(simpy.Environment):
     initial_time : int
         Specifies the time unit to start with, inherited from simpy.Environment
     """
-    def __init__(self, initial_time=0):
+    def __init__(self, dictionary=None, initial_time=0):
         self.init_time = initial_time
         super().__init__(initial_time=initial_time)
-        self.structure = dict()
+        self.structure = dict() if dictionary is None else dictionary
 
     @property
     def agents(self):
@@ -46,6 +45,21 @@ class BaseEnvironment(simpy.Environment):
             return self.agents  # return all regardless of state
         else:
             return [agent for agent in self.agents if agent.state is state]
+
+    def populate(self, agent_constructor):
+        """Populates slots in the current structure with agents.
+
+        This assumes that `structure` is iterable and has a `len` value. The number of agents constructed are equal
+        to the number of units iterable in the structure - a one-to-one correspondence.
+
+        Parameters
+        ----------
+        agent_constructor : agent's constructor class
+
+        """
+        if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
+            for i in self.structure.keys():
+                self.structure[i] = agent_constructor(i, state=None, environment=self)
 
     def __len__(self):
         """Returns number of agents registered in the environment"""
@@ -82,18 +96,21 @@ class NetworkEnvironment(BaseEnvironment):
     graph : Networkx Graph
     initial_time : int
     """
-    def __init__(self, graph, initial_time=0):
+    def __init__(self, graph=None, initial_time=0):
         super().__init__(initial_time=initial_time)
-        assert isinstance(graph, nx.Graph)
-        self.structure = nx.Graph(graph)  # converts to undirected graph
+        self.structure = nx.Graph(graph)  # instantiates an empty graph
 
     @property
     def agents(self):
-        return self.agents
-
-    @agents.getter
-    def agents(self):
         return [self.structure.node[i]['agent'] for i in self.structure.nodes()]
+
+    def populate(self, agent_constructor):
+        if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
+            for i in self.structure.nodes():
+                self.structure.node[i]['agent'] = agent_constructor(i, state=None, environment=self)
+
+    def add_edges(self, agent_1, agent_2):
+        pass
 
     def __len__(self):
         """Returns number of agents registered in the environment"""
