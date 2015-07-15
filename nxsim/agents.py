@@ -1,3 +1,5 @@
+import types
+
 class BaseAgent(object):
     """Base class for nxsim agents
 
@@ -123,27 +125,15 @@ class State(object):
     A state is an encapsulation of a behavior to be associated with an agent.
     """
     def __init__(self, name, description=None, behavior=None):
-        self._behavior = self.static()
         self.name = name
         self.description = description
-        self.active = behavior
+        if behavior is not None:
+            if callable(behavior):
+                self.behavior = types.MethodType(behavior, self)
 
-    @property
     def behavior(self):
-        return self._behavior()
-
-    @behavior.setter
-    def behavior(self, func):
-        if func is None:
-            self._behavior = self.static()
-        elif callable(func):
-            self._behavior = func
-        else:
-            raise TypeError('Passed object <func> must be callable.')
-
-    def static(self):
-        """Empty method for static states"""
-        return True
+        """Empty method for static states (default)"""
+        pass
 
     def __call__(self, *args, **kwargs):
         return self.behavior()
