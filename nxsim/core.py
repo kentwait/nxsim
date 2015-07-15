@@ -106,7 +106,13 @@ class NetworkEnvironment(BaseEnvironment):
 
     @property
     def agents(self):
-        return [self.structure.node[i]['agent'] for i in self.structure.nodes()]
+        agents = []
+        for i in self.structure.nodes():
+            try:
+                agents.append(self.structure.node[i]['agent'])
+            except KeyError:
+                pass
+        return agents
 
     def populate(self, agent_constructor, initial_state=None):
         if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
@@ -156,5 +162,6 @@ def build_simulation(agent_constructor, env_constructor, structure, initial_stat
     # Set-up trial environment
     env = env_constructor(structure=structure, initial_time=initial_time)
     # Populate environment with default agent
-    env.populate(agent_constructor, initial_state=initial_state)
+    # TODO : pass either a state constructor or an object
+    env.populate(agent_constructor, initial_state=initial_state())
     return env

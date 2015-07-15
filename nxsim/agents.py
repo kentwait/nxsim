@@ -17,7 +17,7 @@ class BaseAgent(object):
     state_params : keyword arguments, optional
         Key-value pairs of other state parameters for the agent
     """
-    def __init__(self, uid, state=None, environment=None, name='', description=''):
+    def __init__(self, uid, state=None, environment=None, name='', description='', **agent_params):
         # Properties
         self._env = environment
         self._state = state  # state machine - can only have one state at a time
@@ -26,6 +26,7 @@ class BaseAgent(object):
         self.uid = uid
         self.name = name
         self.description = description
+        self.params = agent_params
 
     @property  # TODO : Make a descriptor class for this
     def state(self):
@@ -110,8 +111,8 @@ class BaseNetworkAgent(BaseAgent):
     environment : Environment object
     node : networkx.Graph.node
     """
-    def __init__(self, uid, state=None, environment=None, **kwargs):
-        super().__init__(uid, state=state, environment=environment, **kwargs)
+    def __init__(self, uid, state=None, environment=None, name='', description='', **agent_params):
+        super().__init__(uid, state=state, environment=environment, name=name, description=description, **agent_params)
         # Properties
         self._node = None
 
