@@ -19,15 +19,13 @@ class BaseAgent(object):
     """
     def __init__(self, uid, state=None, environment=None, name='', description=''):
         # Properties
-        self._env = None
-        self._state = None
+        self._env = environment
+        self._state = state  # state machine - can only have one state at a time
 
         # Initialize agent parameters
         self.uid = uid
         self.name = name
         self.description = description
-        self.state = state  # state machine - can only have one state at a time
-        self._env = environment
 
     @property  # TODO : Make a descriptor class for this
     def state(self):
@@ -89,6 +87,18 @@ class BaseAgent(object):
             self.state.run()
         self.run()
 
+    def __repr__(self):
+        return self.uid
+
+    def __str__(self):
+        return self.uid
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and self.uid == other.uid)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class BaseNetworkAgent(BaseAgent):
     """Base class for network agents
@@ -124,9 +134,9 @@ class BaseNetworkAgent(BaseAgent):
         list
         """
         neighbors = [self.env.structure.node[i]['agent'] for i in self.env.structure.neighbors(self.node)
-                     if self.env.structure.node[i]['agent'].state is state]
+                     if self.env.structure.node[i]['agent'].state == state]
         if state:
-            return [neighbor for neighbor in neighbors if neighbor.state is state]
+            return [neighbor for neighbor in neighbors if neighbor.state == state]
         else:
             return neighbors
 
@@ -147,11 +157,26 @@ class State(object):
     """
     A state is an encapsulation of a behavior to be associated with an agent.
     """
-    def __init__(self, name, description=None, **state_variables):
+    uid_list = set()  # keep track of all uids set by this class and its subclasses
+
+    def __init__(self, uid, description='', **state_variables):
         self._agent = None
-        self.name = name
+        self.__uid = None
+
+        self.uid = uid
         self.description = description
         self.variables = state_variables
+
+    @property
+    def uid(self):
+        return self.__uid
+
+    @uid.setter
+    def uid(self, uid):
+        if uid in type(self).uid_list:
+            raise ValueError('uid already exists for `{}` class!'.format(self.__class__))
+        else:
+            type(self).uid_list.add(uid)
 
     @property
     def agent(self):
@@ -183,7 +208,13 @@ class State(object):
         self.run()
 
     def __repr__(self):
-        return self.name
+        return self.uid
 
     def __str__(self):
-        return self.name
+        return self.uid
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and self.uid == other.uid)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)

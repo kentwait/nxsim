@@ -15,6 +15,7 @@ class BaseEnvironment(simpy.Environment):
         Specifies the time unit to start with, inherited from simpy.Environment
     """
     def __init__(self, initial_time=0):
+        self.init_time = initial_time
         super().__init__(initial_time=initial_time)
         self.structure = dict()
 
@@ -52,7 +53,7 @@ class BaseEnvironment(simpy.Environment):
 
     def __contains__(self, agent):
         """Returns True if the agent is registered in this environment"""
-        return any(a is agent for a in self.agents)
+        return any(a.uid == agent.uid for a in self.agents)
 
     def __getitem__(self, key):
         """Returns the agent associated with this key"""

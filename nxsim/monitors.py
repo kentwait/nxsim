@@ -17,16 +17,23 @@ class StateMonitor(BaseMonitor):
     def __init__(self, environment, states, interval=1):
         super().__init__(environment, interval=interval)
         self.states = states
+        self.tally = {str(state): list() for state in self.states}
 
     def run(self):
-        tally = {str(state): list() for state in self.states}
         while True:
             for state in self.states:
                 count = len(self.env.list(state=state))
-                tally[str(state)].append(count)
+                self.tally[str(state)].append(count)
             yield self.env.timeout(self.interval)
 
     # TODO : when simulation finished, write to file
+    def save(self, path):
+        with open(path, 'w') as f:
+            print('time', *self.states, sep='\t')
+            for index in range(self.env.init_time, self.tally[str(self.states[0])]):
+                time = index * self.interval
+                values = [self.tally[state][index] for state in self.states]
+                print(time, *values, sep='\t', file=f)
 
 
 # class LoggingAgent(BaseAgent)
