@@ -1,5 +1,9 @@
 class BaseMonitor(object):
-    """Monitors agents and the simulation environment
+    """Monitors agents and the simulation environment.
+
+    Monitors, unlike agents, exist outside the context of a simulation environment. However, monitors do interact
+    with the simulation environment either by passive observation or actively modifying the structure and parameters
+    of the simulation environment.
 
     Parameters
     ----------

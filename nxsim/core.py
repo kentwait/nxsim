@@ -3,6 +3,7 @@ import networkx as nx
 from copy import deepcopy
 from .agents import BaseAgent, State
 
+
 class BaseEnvironment(simpy.Environment):
     """The environment behaves like a dictionary of agents.
 
