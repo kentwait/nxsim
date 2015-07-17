@@ -16,14 +16,15 @@ class BaseAgent(object):
         Descriptive name of the agent
     state_params : keyword arguments, optional
         Key-value pairs of other state parameters for the agent
+
     """
-    def __init__(self, uid, state=None, environment=None, name='', description='', **agent_params):
+    def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
         # Properties
         self._env = environment
         self._state = state  # state machine - can only have one state at a time
 
         # Initialize agent parameters
-        self.uid = uid
+        self.id = agent_id
         self.name = name
         self.description = description
         self.params = agent_params
@@ -62,7 +63,7 @@ class BaseAgent(object):
         """
         raise NotImplementedError(self)
 
-    def register(self, environment, env_id=None):
+    def register(self, environment):
         """Register agent to the simulation environment.
 
         Parameters
@@ -70,18 +71,17 @@ class BaseAgent(object):
         environment : Environment object
         env_id : Unique identifier in the environment
         """
-        uid = env_id if env_id else self.uid
         self._env = environment
-        self._env[uid] = self
+        self._env[self.id] = self
 
     def deregister(self):
         """Opposite of the register method. Calling this will remove the agent from its current environment.
 
         """
-        pass
+        raise NotImplementedError(self)
 
     def kill(self):
-        self.env.__delitem__(self.uid)
+        self.env.__delitem__(self.id)
         # del self
 
     def __call__(self):
@@ -90,13 +90,13 @@ class BaseAgent(object):
         self.run()
 
     def __repr__(self):
-        return self.uid
+        return '<{} {}>'.format(self.__class__.__mro__[0], self.id)  # TODO : fix this - <<class '__main__.Person'> 0>
 
     def __str__(self):
-        return self.uid
+        return '{} {}'.format(self.__class__, self.id)
 
     def __eq__(self, other):
-        return (isinstance(other, self.__class__) and self.uid == other.uid)
+        return isinstance(other, self.__class__) and self.id == other.id
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -107,22 +107,13 @@ class BaseNetworkAgent(BaseAgent):
 
     Parameters
     ----------
-    uid : int
+    id : int
     environment : Environment object
     node : networkx.Graph.node
     """
-    def __init__(self, uid, state=None, environment=None, name='', description='', **agent_params):
-        super().__init__(uid, state=state, environment=environment, name=name, description=description, **agent_params)
-        # Properties
-        self._node = None
-
-    @property
-    def node(self):
-        return self._node
-
-    @node.setter
-    def node(self, node):
-        self._node = node  # TODO : check if node is a networkx node
+    def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
+        super().__init__(agent_id, state=state, environment=environment, name=name, description=description,
+                         **agent_params)
 
     def adjacent_agents(self, state=None):
         """Lists agents directly connected to this agent.
@@ -135,76 +126,42 @@ class BaseNetworkAgent(BaseAgent):
         -------
         list
         """
-        neighbors = [self.env.structure.node[i]['agent'] for i in self.env.structure.neighbors(self.node)
-                     if self.env.structure.node[i]['agent'].state == state]
-        if state:
+        neighbors = [self.env.structure.node[i] for i in self.env.structure.neighbors(self.id)]
+        if state is None:
+            return neighbors
+        elif isinstance(state, State):
             return [neighbor for neighbor in neighbors if neighbor.state == state]
         else:
-            return neighbors
-
-    def register(self, environment, node=None):
-        """Register agent to the network simulation environment.
-
-        Parameters
-        ----------
-        environment : Environment object
-        node : networkx.Graph.node
-        """
-        node = node if node else environment.structure.node[self.uid]
-        self._env = environment
-        self._env[node.id] = self
+            raise TypeError('state must be an instance of State or None.')
 
 
 class State(object):
     """
     A state is an encapsulation of a behavior to be associated with an agent.
     """
-    uid_list = set()  # keep track of all uids set by this class and its subclasses
-
-    def __init__(self, uid, description='', **state_variables):
+    def __init__(self, state_id, description, **state_params):
         self._agent = None
-        self.__uid = None
-
-        self.uid = uid
+        assert isinstance(state_id, str) or isinstance(state_id, int)
+        self.id = state_id
         self.description = description
-        self.variables = state_variables
-
-    @property
-    def uid(self):
-        return self.__uid
-
-    @uid.setter
-    def uid(self, uid):
-        if uid in type(self).uid_list:
-            raise ValueError('uid already exists for `{}` class!'.format(self.__class__))
-        else:
-            type(self).uid_list.add(uid)
+        self.params = state_params
 
     @property
     def agent(self):
         return self._agent
 
-    def run(self):
-        """Empty method for static states (default)
-
-        To make custom behaviors, sublclass this and override the `run` method. Note that when associated to an agent,
-        this class has access to agent methods and attributes. To pass other data, use the `self.variables` attribute
-        dictionary.
-
-        """
-        pass
-
-    def __call__(self):
-        self.run()
-
     def __repr__(self):
-        return self.uid
+        return str(self.__class__)
 
     def __str__(self):
-        return self.uid
+        return str(self.__class__)
 
     def __eq__(self, other):
-        return (isinstance(other, self.__class__) and self.uid == other.uid)
+        return isinstance(other, self.__class__) and self.id == other.id
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+
+TrueState = State(1, '"True" state')
+FalseState = State(0, '"False" state')

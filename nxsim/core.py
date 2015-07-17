@@ -1,7 +1,7 @@
 import simpy
 import networkx as nx
 from copy import deepcopy
-
+from .agents import BaseAgent, State
 
 class BaseEnvironment(simpy.Environment):
     """The environment behaves like a dictionary of agents.
@@ -13,6 +13,7 @@ class BaseEnvironment(simpy.Environment):
     ----------
     initial_time : int
         Specifies the time unit to start with, inherited from simpy.Environment
+    structure : dictionary like
     """
     def __init__(self, structure=None, initial_time=0):
         self.init_time = initial_time
@@ -32,7 +33,7 @@ class BaseEnvironment(simpy.Environment):
         """
         return deepcopy(self)
 
-    def list(self, state=None):
+    def list(self, state:State=None):
         """Returns list of agents based on their state and connectedness
 
         Parameters
@@ -48,9 +49,9 @@ class BaseEnvironment(simpy.Environment):
         if state is None:
             return self.agents  # return all regardless of state
         else:
-            return [agent for agent in self.agents if agent.state is state]
+            return [agent for agent in self.agents if agent.state == state]
 
-    def populate(self, agent_constructor, initial_state=None):
+    def populate(self, agent_constructor:BaseAgent, default_state:State=None):
         """Populates slots in the current structure with agents.
 
         This assumes that `structure` is iterable and has a `len` value. The number of agents constructed are equal
@@ -63,7 +64,10 @@ class BaseEnvironment(simpy.Environment):
         """
         if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
             for i in self.structure.keys():
-                self.structure[i] = agent_constructor(i, state=initial_state, environment=self)
+                self.structure[i] = agent_constructor(i, state=default_state, environment=self)
+
+    def items(self):
+        return self.structure.items()
 
     def __len__(self):
         """Returns number of agents registered in the environment"""
@@ -99,6 +103,7 @@ class NetworkEnvironment(BaseEnvironment):
     ---------
     graph : Networkx Graph
     initial_time : int
+
     """
     def __init__(self, structure=None, initial_time=0):
         super().__init__(initial_time=initial_time)
@@ -114,13 +119,16 @@ class NetworkEnvironment(BaseEnvironment):
                 pass
         return agents
 
-    def populate(self, agent_constructor, initial_state=None):
+    def populate(self, agent_constructor:BaseAgent, default_state:State=None):
         if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
             for i in self.structure.nodes():
-                self.structure.node[i]['agent'] = agent_constructor(i, state=initial_state, environment=self)
+                self.__setitem__(i, agent_constructor(i, state=default_state, environment=self))
 
     def add_edges(self, agent_1, agent_2):
         pass
+
+    def items(self):
+        return {i: self.__getitem__(i) for i in self.structure.nodes()}
 
     def __len__(self):
         """Returns number of agents registered in the environment"""
@@ -132,18 +140,18 @@ class NetworkEnvironment(BaseEnvironment):
 
     def __getitem__(self, node_id):
         """Returns the agent given its associated node ID"""
-        return self.structure.node[node_id]['agent']
+        return self.structure.node[node_id]
 
     def __setitem__(self, node_id, agent):
         # TODO : check if node id is present in the network
-        self.structure[node_id]['agent'] = agent
+        self.structure.node[node_id] = agent
         self.process(agent.run())
 
     def __delitem__(self, node_id):
         self.structure.remove_node(node_id)
 
 
-def build_simulation(agent_constructor, env_constructor, structure, initial_state=None, initial_time=0):
+def build_simulation(agent_constructor, env_constructor, structure, state_instance=None, initial_time=0):
     """Creates an environment given a particular structure and populating it with agents and a particular initial state
 
     Parameter
@@ -163,5 +171,5 @@ def build_simulation(agent_constructor, env_constructor, structure, initial_stat
     env = env_constructor(structure=structure, initial_time=initial_time)
     # Populate environment with default agent
     # TODO : pass either a state constructor or an object
-    env.populate(agent_constructor, initial_state=initial_state())
+    env.populate(agent_constructor, state_instance=state_instance)
     return env

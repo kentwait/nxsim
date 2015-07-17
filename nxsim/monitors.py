@@ -63,12 +63,6 @@ class StateMonitor(BaseMonitor):
 class BaseManager(BaseMonitor):
     def __init__(self, environment, name='manager', description=''):
         super().__init__(environment, name=name, description=description)
-        self.env = environment
-        self.register()
-
-    def register(self):
-        self.env.monitors.append(self)
-        self.env.process(self.run())
 
     def run(self):
         raise NotImplementedError(self)
