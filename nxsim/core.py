@@ -1,3 +1,13 @@
+"""
+Simulation environment
+======================
+The simulation environment acts as the container of agents, monitors, and resources that are part of the simulation.
+
+The simulation environment in nxsim expands the Simpy 3 simpy.Environment class to include agent methods and make it
+act like an array containing the agents.
+
+"""
+
 import simpy
 import networkx as nx
 from copy import deepcopy
@@ -14,7 +24,7 @@ class BaseEnvironment(simpy.Environment):
     ----------
     initial_time : int
         Specifies the time unit to start with, inherited from simpy.Environment
-    structure : dictionary like
+    structure : dictionary-like
     """
     def __init__(self, structure=None, initial_time=0):
         self.init_time = initial_time
@@ -108,20 +118,20 @@ class NetworkEnvironment(BaseEnvironment):
     """
     def __init__(self, structure=None, initial_time=0):
         super().__init__(initial_time=initial_time)
-        self.structure = nx.Graph(structure)  # instantiates an empty graph
+        self.structure = nx.Graph(structure)  # instantiates an empty graph if None
 
     @property
     def agents(self):
         agents = []
         for i in self.structure.nodes():
             try:
-                agents.append(self.structure.node[i]['agent'])
+                agents.append(self.structure.node[i])
             except KeyError:
                 pass
         return agents
 
     def populate(self, agent_constructor:BaseAgent, default_state:State=None):
-        if (len(list(self.agents)) == 0) and (len(self.structure) > 0):
+        if len(self.structure) > 0: #(len(self.agents) == 0) and (len(self.structure) > 0):
             for i in self.structure.nodes():
                 self.__setitem__(i, agent_constructor(i, state=default_state, environment=self))
 
@@ -137,7 +147,7 @@ class NetworkEnvironment(BaseEnvironment):
 
     def __contains__(self, agent):
         """Returns True if the agent is registered in this environment"""
-        return any(a.uid == agent.uid for a in self.agents)
+        return any(a.id == agent.id for a in self.agents)
 
     def __getitem__(self, node_id):
         """Returns the agent given its associated node ID"""
@@ -152,7 +162,7 @@ class NetworkEnvironment(BaseEnvironment):
         self.structure.remove_node(node_id)
 
 
-def build_simulation(agent_constructor, env_constructor, structure, state_instance=None, initial_time=0):
+def build_simulation(agent_constructor, env_constructor, structure, default_state=None, initial_time=0):
     """Creates an environment given a particular structure and populating it with agents and a particular initial state
 
     Parameter
@@ -165,12 +175,12 @@ def build_simulation(agent_constructor, env_constructor, structure, state_instan
 
     Returns
     -------
-    Environment object
+    Environment
 
     """
     # Set-up trial environment
     env = env_constructor(structure=structure, initial_time=initial_time)
     # Populate environment with default agent
     # TODO : pass either a state constructor or an object
-    env.populate(agent_constructor, state_instance=state_instance)
+    env.populate(agent_constructor, default_state=default_state)
     return env

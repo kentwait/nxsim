@@ -1,3 +1,11 @@
+"""
+Monitors
+========
+Monitors exist outside the context of the simulation environment. However, they are still connected to the simulation
+environment as they either record environment variables over time or change environment parameters.
+
+"""
+
 class BaseMonitor(object):
     """Monitors agents and the simulation environment.
 
@@ -29,6 +37,14 @@ class BaseMonitor(object):
 
     def __str__(self):
         return self.name
+
+
+class BaseManager(BaseMonitor):
+    def __init__(self, environment, name='manager', description=''):
+        super().__init__(environment, name=name, description=description)
+
+    def run(self):
+        raise NotImplementedError(self)
 
 
 class StateMonitor(BaseMonitor):
@@ -63,10 +79,9 @@ class StateMonitor(BaseMonitor):
                 values = [self.tally[state][index] for state in self.states]
                 print(time, *values, sep='\t', file=f)
 
+    def plot(self):
+        pass
 
-class BaseManager(BaseMonitor):
-    def __init__(self, environment, name='manager', description=''):
-        super().__init__(environment, name=name, description=description)
 
-    def run(self):
-        raise NotImplementedError(self)
+def replay_history(structure, records):
+    pass

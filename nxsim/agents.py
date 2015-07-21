@@ -1,5 +1,13 @@
-from copy import deepcopy
+"""
+Agents
+======
+Agents are autonomous units that run within a simulation environment.
 
+The overall result of a simulation is a result of the behavior of each agent and interactions between agents. Because
+the specification of an agent greatly depends on the simulation goals, nxsim only provides base constructors from which
+actual simulation agents can be built on.
+
+"""
 
 class BaseAgent(object):
     """Base class for nxsim agents
@@ -21,13 +29,14 @@ class BaseAgent(object):
     def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
         # Properties
         self._env = environment
-        self._state = state  # state machine - can only have one state at a time
+        self._state = None  # state machine - can only have one state at a time
 
         # Initialize agent parameters
         self.id = agent_id
         self.name = name
         self.description = description
         self.params = agent_params
+        self.state = state
 
     @property  # TODO : Make a descriptor class for this
     def state(self):
@@ -36,24 +45,23 @@ class BaseAgent(object):
     @state.setter
     def state(self, state):
         if isinstance(state, State):
-            self._state = deepcopy(state)  # make a copy of the original state
-            self._state._agent = self  # register agent to state
+            self._state = state  # make a copy of the original state
             self._env.possible_states.add(state)
 
     @state.deleter
     def state(self):
         if self.state is not None:
-            self._state._agent = None
             self._state = None
 
     @property
     def env(self):
         return self._env
 
-    # @env.setter
-    # def env(self, environment):
-    #     assert isinstance(environment, Environment)
-    #     self._env = environment
+    @env.setter
+    def env(self, environment):
+        assert isinstance(environment, Environment)
+        self._env = environment
+        self._env[self.id] = self
 
     def run(self):
         """Subclass must specify a generator method!
@@ -71,8 +79,7 @@ class BaseAgent(object):
         environment : Environment object
         env_id : Unique identifier in the environment
         """
-        self._env = environment
-        self._env[self.id] = self
+        self.env = environment
 
     def deregister(self):
         """Opposite of the register method. Calling this will remove the agent from its current environment.
@@ -110,6 +117,11 @@ class BaseNetworkAgent(BaseAgent):
     id : int
     environment : Environment object
     node : networkx.Graph.node
+
+    See Also
+    --------
+    BaseAgent
+
     """
     def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
         super().__init__(agent_id, state=state, environment=environment, name=name, description=description,
@@ -140,27 +152,25 @@ class State(object):
     A state is an encapsulation of a behavior to be associated with an agent.
     """
     def __init__(self, state_id, description, **state_params):
-        self._agent = None
         assert isinstance(state_id, str) or isinstance(state_id, int)
         self.id = state_id
         self.description = description
         self.params = state_params
 
-    @property
-    def agent(self):
-        return self._agent
-
     def __repr__(self):
-        return str(self.__class__)
+        return str(self.id)  # think of a better way to represent this
 
     def __str__(self):
-        return str(self.__class__)
+        return str(self.id)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __hash__(self):
+        return self.id
 
 
 TrueState = State(1, '"True" state')
