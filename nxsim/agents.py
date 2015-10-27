@@ -8,6 +8,10 @@ the specification of an agent greatly depends on the simulation goals, nxsim onl
 actual simulation agents can be built on.
 
 """
+from .core import BaseEnvironment
+
+__all__ = ['BaseAgent', 'BaseNetworkAgent', 'BaseState', 'TrueState', 'FalseState']
+
 
 class BaseAgent(object):
     """Base class for nxsim agents
@@ -19,7 +23,7 @@ class BaseAgent(object):
     agent_id : int, optional
         Unique identifier
     state : dict-like, optional
-        State of the Agent. Object must be subscriptable and have an "id" key
+        BaseState of the Agent. Object must be subscriptable and have an "id" key
     name : str, optional
         Descriptive name of the agent
     state_params : keyword arguments, optional
@@ -29,7 +33,7 @@ class BaseAgent(object):
     def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
         # Properties
         self._env = environment
-        self._state = None  # state machine - can only have one state at a time
+        self._state = state  # state machine - can only have one state at a time
 
         # Initialize agent parameters
         self.id = agent_id
@@ -38,15 +42,19 @@ class BaseAgent(object):
         self.params = agent_params
         self.state = state
 
-    @property  # TODO : Make a descriptor class for this
+    @property
     def state(self):
         return self._state
 
     @state.setter
     def state(self, state):
-        if isinstance(state, State):
-            self._state = state  # make a copy of the original state
-            self._env.possible_states.add(state)
+        assert isinstance(self.env, BaseEnvironment)
+        assert isinstance(state, BaseState)
+        if self.env is not None:
+            self._env.possible_states.add(state)  # add current state to possible states
+            self._state = state  # assign state to _state
+        else:
+            raise ValueError('self.env must contain an Environment instance.')
 
     @state.deleter
     def state(self):
@@ -59,9 +67,14 @@ class BaseAgent(object):
 
     @env.setter
     def env(self, environment):
-        assert isinstance(environment, Environment)
-        self._env = environment
-        self._env[self.id] = self
+        assert isinstance(environment, BaseEnvironment)
+        if self._env is None:
+            self._env = environment
+            self._env[self.id] = self
+            if self.state is not None: self._env.possible_states.add(self.state)
+        else:
+            raise ValueError('Agent <id: {}, name: {}> is already assigned to environment {}'.format(
+                self.id, self.name, self.env))
 
     def run(self):
         """Subclass must specify a generator method!
@@ -73,6 +86,9 @@ class BaseAgent(object):
 
     def register(self, environment):
         """Register agent to the simulation environment.
+
+        This method uses the same setter method such that self.register(some_env) will produce the same result as
+        self.env = some_env
 
         Parameters
         ----------
@@ -132,7 +148,7 @@ class BaseNetworkAgent(BaseAgent):
 
         Parameters
         ----------
-        state : State object
+        state : BaseState object
 
         Returns
         -------
@@ -141,13 +157,13 @@ class BaseNetworkAgent(BaseAgent):
         neighbors = [self.env.structure.node[i] for i in self.env.structure.neighbors(self.id)]
         if state is None:
             return neighbors
-        elif isinstance(state, State):
+        elif isinstance(state, BaseState):
             return [neighbor for neighbor in neighbors if neighbor.state == state]
         else:
-            raise TypeError('state must be an instance of State or None.')
+            raise TypeError('state must be an instance of BaseState or None.')
 
 
-class State(object):
+class BaseState(object):
     """
     A state is an encapsulation of a behavior to be associated with an agent.
     """
@@ -173,5 +189,5 @@ class State(object):
         return self.id
 
 
-TrueState = State(1, '"True" state')
-FalseState = State(0, '"False" state')
+TrueState = BaseState(1, '"True" state')
+FalseState = BaseState(0, '"False" state')

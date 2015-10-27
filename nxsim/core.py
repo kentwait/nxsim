@@ -3,7 +3,7 @@ Simulation environment
 ======================
 The simulation environment acts as the container of agents, monitors, and resources that are part of the simulation.
 
-The simulation environment in nxsim expands the Simpy 3 simpy.Environment class to include agent methods and make it
+The simulation environment in nxsim subclasses the Simpy 3 simpy.Environment class to include agent methods and make it
 act like an array containing the agents.
 
 """
@@ -11,20 +11,25 @@ act like an array containing the agents.
 import simpy
 import networkx as nx
 from copy import deepcopy
-from .agents import BaseAgent, State
+
+__all__ = ['BaseEnvironment', 'BaseNetworkEnvironment', 'build_simulation',]
 
 
 class BaseEnvironment(simpy.Environment):
-    """The environment behaves like a dictionary of agents.
+    """Generic container of agents
 
     In BaseEnvironment, there is no positional structure to the arrangement of the agents, so the agents are stored as
     a key-value pair in a dictionary. The key corresponds to an arbitrary label for the agent for easy retrieval.
 
+    Structure can be added to the base environment by passing a dictionary-like object to the structure parameter.
+    Note that the structure object must behave like a dictionary in terms of methods and properties to work properly.
+
     Parameters
     ----------
-    initial_time : int
+    initial_time : int, optional (default = 0)
         Specifies the time unit to start with, inherited from simpy.Environment
-    structure : dictionary-like
+    structure : dictionary-like, optional (default = None)
+        Defines the structure of the environment. If None, the the agents in the environment are unstructured
     """
     def __init__(self, structure=None, initial_time=0):
         self.init_time = initial_time
@@ -36,20 +41,20 @@ class BaseEnvironment(simpy.Environment):
 
     @property
     def agents(self):
-        return self.structure.values()
+        """Returns a list of agents in the environment"""
+        return list(self.structure.values())
 
     def current(self):
-        """
-        Return a snapshot of the current state of the entire simulation environment.
+        """Return a snapshot of the current state of the entire simulation environment.
         """
         return deepcopy(self)
 
-    def list(self, state:State=None):
+    def list(self, state=None):
         """Returns list of agents based on their state and connectedness
 
         Parameters
         ----------
-        state : State object, optional
+        state : BaseState object, optional
             Used to select agents that have the same specified "state". If state is None, returns all agents regardless
             of its current state
 
@@ -62,11 +67,12 @@ class BaseEnvironment(simpy.Environment):
         else:
             return [agent for agent in self.agents if agent.state == state]
 
-    def populate(self, agent_constructor:BaseAgent, default_state:State=None):
+    def populate(self, agent_constructor, default_state=None):
         """Populates slots in the current structure with agents.
 
-        This assumes that `structure` is iterable and has a `len` value. The number of agents constructed are equal
-        to the number of units iterable in the structure - a one-to-one correspondence.
+        This assumes that `structure` is iterable and has a `len` value. The number of agents constructed will be equal
+        to the number of units iterable in the structure. As such, the environment must be empty of agents before
+        calling populate.
 
         Parameters
         ----------
@@ -78,6 +84,7 @@ class BaseEnvironment(simpy.Environment):
                 self.structure[i] = agent_constructor(i, state=default_state, environment=self)
 
     def items(self):
+        """Returns the contents of the structure using key-value pairs"""
         return self.structure.items()
 
     def __len__(self):
@@ -89,29 +96,29 @@ class BaseEnvironment(simpy.Environment):
         return any(a.uid == agent.uid for a in self.agents)
 
     def __getitem__(self, key):
-        """Returns the agent associated with this key"""
+        """Returns the agent associated with a particular key"""
         return self.structure[key]
 
     def __setitem__(self, key, agent):
-        """Agent is registered into this environment"""
+        """Register an agent into this environment"""
         self.structure[key] = agent
         self.process(agent.run())
 
     def __delitem__(self, key):
-        """Agent is removed from this environment"""
+        """Remove agent from this environment"""
         del self.structure[key]
 
     def __repr__(self):
         return repr(self.structure)
 
 
-class NetworkEnvironment(BaseEnvironment):
-    """An environment that uses a graph to control the spatial configuration of agents.
+class BaseNetworkEnvironment(BaseEnvironment):
+    """An environment that uses a graph structure to control the spatial configuration of agents.
 
     This is a subclass of BaseEnvironment. Thus it likewise also acts like a dictionary of agents.
 
     Parameters
-    ---------
+    ----------
     graph : Networkx Graph
     initial_time : int
 
@@ -122,15 +129,10 @@ class NetworkEnvironment(BaseEnvironment):
 
     @property
     def agents(self):
-        agents = []
-        for i in self.structure.nodes():
-            try:
-                agents.append(self.structure.node[i])
-            except KeyError:
-                pass
-        return agents
+        """Returns a list of agents in the environment"""
+        return list(dict(self.structure.nodes(data=True)).values())
 
-    def populate(self, agent_constructor:BaseAgent, default_state:State=None):
+    def populate(self, agent_constructor, default_state=None):
         if len(self.structure) > 0: #(len(self.agents) == 0) and (len(self.structure) > 0):
             for i in self.structure.nodes():
                 self.__setitem__(i, agent_constructor(i, state=default_state, environment=self))
@@ -168,14 +170,18 @@ def build_simulation(agent_constructor, env_constructor, structure, default_stat
     Parameter
     ---------
     agent_constructor : BaseAgent class or subclass
+        Will be used to create agents to populate the structure in teh environment
     env_constructor : BaseEnvironment class or subclass
+        Environment will be instantiated using this constructor.
     structure : structure object
-    initial_state : State object or None, optional (default = None)
+        Used to instantiate a structure in the environment
+    initial_state : BaseState object or None, optional (default = None)
     initial_time = int, optional (default = 0)
 
     Returns
     -------
     Environment
+        The returned environment will have n agents based on a structure with size n.
 
     """
     # Set-up trial environment

@@ -6,6 +6,9 @@ environment as they either record environment variables over time or change envi
 
 """
 
+__all__ = ['BaseMonitor', 'BaseManager', 'StateMonitor', 'replay_history']
+
+
 class BaseMonitor(object):
     """Monitors agents and the simulation environment.
 
@@ -16,8 +19,10 @@ class BaseMonitor(object):
     Parameters
     ----------
     environment : Environment object
-    interval : int or None, optional (default = None)
-
+    name : str, optional (default = 'monitor')
+        Name to identify the monitor
+    description : str, optional (default = '')
+        Note describing the monitor
     """
     def __init__(self, environment, name='monitor', description=''):
         self.env = environment
