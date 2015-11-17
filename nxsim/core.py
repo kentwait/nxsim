@@ -13,9 +13,8 @@ import networkx as nx
 from copy import deepcopy
 import weakref
 from collections import Counter
-from .agents import BaseAgent, BaseState
 
-__all__ = ['BaseEnvironment', 'BaseNetworkEnvironment', 'build_simulation']
+__all__ = ['BaseEnvironment', 'BaseNetworkEnvironment']
 
 
 class BaseEnvironment(simpy.Environment):
@@ -95,7 +94,7 @@ class BaseEnvironment(simpy.Environment):
 
         if len(self.structure) > 0:
             for uid in self.structure.keys():
-                self.structure[uid] = agent_constructor(uid, self, initial_agent_state)
+                self.__setitem__(uid, agent_constructor(uid, self, initial_agent_state))
 
     @property
     def agents(self):

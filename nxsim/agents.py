@@ -8,7 +8,7 @@ the specification of an agent greatly depends on the simulation goals, nxsim onl
 actual simulation agents can be built on.
 
 """
-from .core import BaseEnvironment
+from . import BaseEnvironment
 from collections import namedtuple
 import weakref
 
