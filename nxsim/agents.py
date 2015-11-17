@@ -9,16 +9,50 @@ actual simulation agents can be built on.
 
 """
 from .core import BaseEnvironment
+from collections import namedtuple
+import weakref
 
 __all__ = ['BaseAgent', 'BaseNetworkAgent', 'BaseState', 'TrueState', 'FalseState']
+
+
+class BaseState(namedtuple('State', ['uid', 'description'])):
+    """
+    A state is an encapsulation of a behavior to be associated with an agent.
+    """
+    __slots__ = ()
+
+    def __repr__(self):
+        return str(self.uid)  # think of a better way to represent this
+
+    def __str__(self):
+        return str(self.uid)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.uid == other.uid
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return self.uid
+
+
+TrueState = BaseState(1, '"True" state')
+FalseState = BaseState(0, '"False" state')
 
 
 class BaseAgent(object):
     """Base class for nxsim agents
 
+    The BaseAgent class is the most basic agent type in nxsim. All other agent classes inherit from this class.
+
+    To create an agent, use the BaseAgent constructor supplying a unique ID for the agent. This unique ID plays a
+    very important role to identify, retrieve, and check for the existence of agents in an environment. Other parameters
+    such as state, environment, name, and description are optional and can be added later.
+
     Parameters
     ----------
-    environment : simpy.Environment() instance
+    environment : nxsim.BaseEnvironment
         Simulation environment shared by processes
     agent_id : int, optional
         Unique identifier
@@ -30,17 +64,39 @@ class BaseAgent(object):
         Key-value pairs of other state parameters for the agent
 
     """
-    def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
-        # Properties
-        self._env = environment
-        self._state = state  # state machine - can only have one state at a time
+    def __init__(self, uid, environment, state=None, name='', description='', **agent_params):
+        """Create a BaseAgent instance and registers it to an existing environment
+
+        Parameters
+        ----------
+        uid : int
+            Unique identifier
+        environment : BaseEnvironment
+            Simulation environment
+        state : BaseState, optional
+        name : str, optional
+            Descriptive name of the agent
+        description : str, optional
+            Short description
+        agent_params : keyword arguments, optional
+            Key-value pairs of other state parameters for the agent
+
+        """
+        # Initializae Properties
+        self._env = None
+        self._state = None
+
+        # Execute property setters
+        self.env = environment
+        if state:
+            assert isinstance(state, BaseState)
+            self._state = state  # state machine - can only have one state at a time
 
         # Initialize agent parameters
-        self.id = agent_id
+        self.uid = uid
         self.name = name
         self.description = description
         self.params = agent_params
-        self.state = state
 
     @property
     def state(self):
@@ -69,12 +125,13 @@ class BaseAgent(object):
     def env(self, environment):
         assert isinstance(environment, BaseEnvironment)
         if self._env is None:
-            self._env = environment
-            self._env[self.id] = self
-            if self.state is not None: self._env.possible_states.add(self.state)
+            self._env = weakref.ref(environment)
+            self._env[self.uid] = self
+            if self.state is not None:
+                self._env.possible_states.add(self.state)
         else:
             raise ValueError('Agent <id: {}, name: {}> is already assigned to environment {}'.format(
-                self.id, self.name, self.env))
+                self.uid, self.name, self.env))
 
     def run(self):
         """Subclass must specify a generator method!
@@ -84,42 +141,20 @@ class BaseAgent(object):
         """
         raise NotImplementedError(self)
 
-    def register(self, environment):
-        """Register agent to the simulation environment.
-
-        This method uses the same setter method such that self.register(some_env) will produce the same result as
-        self.env = some_env
-
-        Parameters
-        ----------
-        environment : Environment object
-        env_id : Unique identifier in the environment
-        """
-        self.env = environment
-
-    def deregister(self):
-        """Opposite of the register method. Calling this will remove the agent from its current environment.
-
-        """
-        raise NotImplementedError(self)
-
-    def kill(self):
-        self.env.__delitem__(self.id)
-        # del self
-
     def __call__(self):
         if self.state is not None:
-            self.state.run()
+            # self.state.run()  # TODO : how to run a behavior that is associated to a certain state
+            pass
         self.run()
 
     def __repr__(self):
-        return '<{} {}>'.format(self.__class__.__mro__[0], self.id)  # TODO : fix this - <<class '__main__.Person'> 0>
+        return '<{} {}>'.format(self.__class__.__mro__[0], self.uid)  # TODO : fix this - <<class '__main__.Person'> 0>
 
     def __str__(self):
-        return '{} {}'.format(self.__class__, self.id)
+        return '{} {}'.format(self.__class__, self.uid)
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.id == other.id
+        return isinstance(other, self.__class__) and self.uid == other.uid
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -139,8 +174,8 @@ class BaseNetworkAgent(BaseAgent):
     BaseAgent
 
     """
-    def __init__(self, agent_id, state=None, environment=None, name='', description='', **agent_params):
-        super().__init__(agent_id, state=state, environment=environment, name=name, description=description,
+    def __init__(self, uid, environment, state=None, name='', description='', **agent_params):
+        super().__init__(uid, environment, state=state, name=name, description=description,
                          **agent_params)
 
     def adjacent_agents(self, state=None):
@@ -154,7 +189,7 @@ class BaseNetworkAgent(BaseAgent):
         -------
         list
         """
-        neighbors = [self.env.structure.node[i] for i in self.env.structure.neighbors(self.id)]
+        neighbors = [self.env.structure.node[i] for i in self.env.structure.neighbors(self.uid)]
         if state is None:
             return neighbors
         elif isinstance(state, BaseState):
@@ -163,31 +198,5 @@ class BaseNetworkAgent(BaseAgent):
             raise TypeError('state must be an instance of BaseState or None.')
 
 
-class BaseState(object):
-    """
-    A state is an encapsulation of a behavior to be associated with an agent.
-    """
-    def __init__(self, state_id, description, **state_params):
-        assert isinstance(state_id, str) or isinstance(state_id, int)
-        self.id = state_id
-        self.description = description
-        self.params = state_params
-
-    def __repr__(self):
-        return str(self.id)  # think of a better way to represent this
-
-    def __str__(self):
-        return str(self.id)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.id == other.id
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return self.id
-
-
-TrueState = BaseState(1, '"True" state')
-FalseState = BaseState(0, '"False" state')
+class TestAgent(BaseAgent):
+    pass

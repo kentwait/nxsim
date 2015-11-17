@@ -71,7 +71,7 @@ class StateMonitor(BaseMonitor):
     def run(self):
         while True:
             for state in self.states:
-                count = len(self.env.list(state=state))
+                count = len(self.env.filter(state=state))
                 self.tally[str(state)].append(count)
             yield self.env.timeout(self.interval)
 
