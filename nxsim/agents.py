@@ -82,7 +82,7 @@ class BaseAgent(object):
             Key-value pairs of other state parameters for the agent
 
         """
-        # Initializae Properties
+        # Initialize Properties
         self._env = None
         self._state = None
 
@@ -104,13 +104,8 @@ class BaseAgent(object):
 
     @state.setter
     def state(self, state):
-        assert isinstance(self.env, BaseEnvironment)
         assert isinstance(state, BaseState)
-        if self.env is not None:
-            self._env.possible_states.add(state)  # add current state to possible states
-            self._state = state  # assign state to _state
-        else:
-            raise ValueError('self.env must contain an Environment instance.')
+        self._state = state  # assign state to _state
 
     @state.deleter
     def state(self):
@@ -127,8 +122,6 @@ class BaseAgent(object):
         if self._env is None:
             self._env = weakref.ref(environment)
             self._env[self.uid] = self
-            if self.state is not None:
-                self._env.possible_states.add(self.state)
         else:
             raise ValueError('Agent <id: {}, name: {}> is already assigned to environment {}'.format(
                 self.uid, self.name, self.env))
@@ -161,7 +154,7 @@ class BaseAgent(object):
 
 
 class BaseNetworkAgent(BaseAgent):
-    """Base class for network agents
+    """Base class for network-type agents. This inherits all BaseAgent methods and properties.
 
     Parameters
     ----------

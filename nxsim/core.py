@@ -61,8 +61,8 @@ class BaseEnvironment(simpy.Environment):
     Agents can be added to an environment TODO
 
     """
-    def __init__(self, structure, agent_constructor=None, initial_agent_state=None, initial_time=0,
-                 possible_states=(), monitors=(), resources=()):
+    def __init__(self, structure, agent_constructor=None, initial_agent_state=None, initial_time=0, monitors=(),
+                 resources=()):
         """Creates a new BaseEnvironment for simulation
 
         Parameters
@@ -78,8 +78,6 @@ class BaseEnvironment(simpy.Environment):
             Initial state of newly created agents
         initial_time : int, optional (default=0)
             Start time of the environment at initialization.
-        possible_states : set or iterable, optional (default=())
-            List of states agents can have in this environment.
         monitors : list of monitor objects, optional (default=())
             List of monitors associated with this environment.
         resources : list of resource objects, optional (default=())
@@ -88,9 +86,8 @@ class BaseEnvironment(simpy.Environment):
         self.init_time = initial_time
         super().__init__(initial_time=initial_time)
         self._structure = dict() if structure is None else deepcopy(structure)  # structure must be dict-like
-        self.possible_states = weakref.WeakSet(possible_states)
-        self.monitors = list(monitors)
-        self.resources = list(resources)
+        self.monitors = weakref.WeakSet(monitors)
+        self.resources = weakref.WeakSet(resources)
 
         if len(self.structure) > 0:
             for uid in self.structure.keys():
@@ -137,7 +134,6 @@ class BaseEnvironment(simpy.Environment):
         """Describe the environment in terms of number of agents registered, their states, and the structure present.
         """
         return {'agent_count': len(self),
-                'possible_states': self.possible_states,
                 'state_count': Counter(self.structure.values()),
                 'structure': repr(type(self.structure)),
                 }
@@ -181,12 +177,7 @@ class BaseEnvironment(simpy.Environment):
 class BaseNetworkEnvironment(BaseEnvironment):
     """An environment that uses a network structure to control the spatial configuration of agents.
 
-    This is a subclass of BaseEnvironment that uses a Networkx graph for its structure
-
-    Parameters
-    ----------
-    graph : Networkx Graph
-    initial_time : int
+    This is a subclass of BaseEnvironment that uses a Networkx graph for its structure.
 
     See Also
     --------
@@ -194,7 +185,7 @@ class BaseNetworkEnvironment(BaseEnvironment):
 
     """
     def __init__(self, graph=None, agent_constructor=None, initial_agent_state=None, initial_time=0,
-                 possible_states=(), monitors=(), resources=()):
+                 monitors=(), resources=()):
         """Creates a new BaseNetworkEnvironment for simulation regulated by a network structure
 
         Parameters
@@ -207,8 +198,6 @@ class BaseNetworkEnvironment(BaseEnvironment):
             Initial state of newly created agents
         initial_time : int, optional (default=0)
             Start time of the environment at initialization.
-        possible_states : set or iterable, optional (default=())
-            List of states agents can have in this environment.
         monitors : list of monitor objects, optional (default=())
             List of monitors associated with this environment.
         resources : list of resource objects, optional (default=())
@@ -220,8 +209,7 @@ class BaseNetworkEnvironment(BaseEnvironment):
 
         if isinstance(graph, nx.Graph):
             super().__init__(graph, agent_constructor=agent_constructor, initial_agent_state=initial_agent_state,
-                             initial_time=initial_time, possible_states=possible_states,
-                             monitors=monitors, resources=resources)
+                             initial_time=initial_time, monitors=monitors, resources=resources)
         else:
             raise TypeError('Structure must be a Networkx Graph object or a subclass.')
 

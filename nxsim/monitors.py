@@ -5,12 +5,12 @@ Monitors exist outside the context of the simulation environment. However, they 
 environment as they either record environment variables over time or change environment parameters.
 
 """
-
 __all__ = ['BaseMonitor', 'BaseManager', 'StateMonitor', 'replay_history']
 
 
 class BaseMonitor(object):
-    """Monitors agents and the simulation environment.
+    """
+    Monitors agents and the simulation environment.
 
     Monitors, unlike agents, exist outside the context of a simulation environment. However, monitors do interact
     with the simulation environment either by passive observation or actively modifying the structure and parameters
@@ -31,7 +31,7 @@ class BaseMonitor(object):
         self.register()
 
     def register(self):
-        self.env.monitors.append(self)
+        self.env.monitors.add(self)
         self.env.process(self.run())
 
     def run(self):
@@ -44,28 +44,22 @@ class BaseMonitor(object):
         return self.name
 
 
-class BaseManager(BaseMonitor):
-    def __init__(self, environment, name='manager', description=''):
-        super().__init__(environment, name=name, description=description)
-
-    def run(self):
-        raise NotImplementedError(self)
-
-
 class StateMonitor(BaseMonitor):
-    """Counts the number of states per logging interval
+    """
+    Counts the number of states per logging interval
 
     Parameters
     ----------
     environment : Environment object
+    possible_states : list
     interval : int, optional (default = 1)
-    possible_states : list, optional (default = ())
+
 
     """
-    def __init__(self, environment, interval=1, name='monitor', description='', possible_states=()):
+    def __init__(self, environment, possible_states, interval=1, name='monitor', description=''):
         super().__init__(environment, name=name, description=description)
         self.interval = interval
-        self.states = self.env.possible_states if len(possible_states) == 0 else possible_states
+        self.states = possible_states
         self.tally = {str(state): list() for state in self.states}
 
     def run(self):
@@ -88,5 +82,18 @@ class StateMonitor(BaseMonitor):
         pass
 
 
+class BaseManager(BaseMonitor):
+    """
+    Environment manager for programatically controlling simulation environments
+
+    """
+    def __init__(self, environment, name='manager', description=''):
+        super().__init__(environment, name=name, description=description)
+
+    def run(self):
+        raise NotImplementedError(self)
+
+
 def replay_history(structure, records):
     pass
+
