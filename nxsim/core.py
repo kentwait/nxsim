@@ -61,7 +61,7 @@ class BaseEnvironment(simpy.Environment):
     Agents can be added to an environment TODO
 
     """
-    def __init__(self, structure, agent_constructor=None, initial_agent_state=None, initial_time=0, monitors=(),
+    def __init__(self, structure, initial_time=0, monitors=(),
                  resources=()):
         """Creates a new BaseEnvironment for simulation
 
@@ -72,10 +72,6 @@ class BaseEnvironment(simpy.Environment):
             If None, the the agents in the environment are stored in an unstructured manner where each agent is
             independent of any other agent. Formally, agents are stored as values in a dictionary identified using
             agent uid's as key.
-        agent_constructor : BaseAgent
-            Agent constructor to be used if graph is not empty.
-        initial_agent_state : BaseState
-            Initial state of newly created agents
         initial_time : int, optional (default=0)
             Start time of the environment at initialization.
         monitors : list of monitor objects, optional (default=())
@@ -89,10 +85,6 @@ class BaseEnvironment(simpy.Environment):
         self.monitors = weakref.WeakSet(monitors)
         self.resources = weakref.WeakSet(resources)
 
-        if len(self.structure) > 0:
-            for uid in self.structure.keys():
-                self.__setitem__(uid, agent_constructor(uid, self, initial_agent_state))
-
     @property
     def agents(self):
         return list(self.structure.values())
@@ -100,6 +92,26 @@ class BaseEnvironment(simpy.Environment):
     @property
     def structure(self):
         return self._structure
+
+    def populate(self, agent_constructor=None, initial_agent_state=None, exclude=None):
+        """Places agents into the structure
+
+        Parameters
+        ----------
+        agent_constructor : BaseAgent
+            Agent constructor to be used if graph is not empty.
+        initial_agent_state : BaseState
+            Initial state of newly created agents
+        exclude : list or None, optional (default=None)
+            List of structure uid's to exclude from populating with agents. Useful for bipartite networks or any
+            network with mixed agents.
+
+        """
+        exclude = exclude if exclude else list()
+        fill_list = set(self.structure.keys()) - set(exclude)
+        if len(fill_list) > 0:
+            for uid in fill_list:
+                self.__setitem__(uid, agent_constructor(uid, self, state=initial_agent_state))
 
     def current(self):
         """Return a snapshot of the current state of the entire simulation environment.
@@ -184,16 +196,16 @@ class BaseNetworkEnvironment(BaseEnvironment):
     BaseEnvironment
 
     """
-    def __init__(self, graph=None, agent_constructor=None, initial_agent_state=None, initial_time=0,
+    def __init__(self, structure=None, agent_constructor=None, initial_agent_state=None, initial_time=0,
                  monitors=(), resources=()):
         """Creates a new BaseNetworkEnvironment for simulation regulated by a network structure
 
         Parameters
         ----------
-        graph : nx.Graph
+        structure : nx.Graph
             Networkx graph
         agent_constructor : BaseAgent
-            Agent constructor to be used if graph is not empty.
+            Agent constructor to be used if structure is not empty.
         initial_agent_state : BaseState
             Initial state of newly created agents
         initial_time : int, optional (default=0)
@@ -204,18 +216,37 @@ class BaseNetworkEnvironment(BaseEnvironment):
             List of resources used by this environment.
 
         """
-        if not graph:  # None
-            graph = nx.Graph()  # empty graph
+        if not structure:  # None
+            structure = nx.Graph()  # empty graph
 
-        if isinstance(graph, nx.Graph):
-            super().__init__(graph, agent_constructor=agent_constructor, initial_agent_state=initial_agent_state,
-                             initial_time=initial_time, monitors=monitors, resources=resources)
+        if isinstance(structure, nx.Graph):
+            super().__init__(structure, initial_time=initial_time, monitors=monitors, resources=resources)
         else:
             raise TypeError('Structure must be a Networkx Graph object or a subclass.')
 
     @property
     def agents(self):
         return list(dict(self.structure.nodes(data=True)).values())
+
+    def populate(self, agent_constructor, initial_agent_state, exclude=None):
+        """Places agents into the structure
+
+        Parameters
+        ----------
+        agent_constructor : BaseAgent
+            Agent constructor to be used if graph is not empty.
+        initial_agent_state : BaseState
+            Initial state of newly created agents
+        exclude : list or None, optional (default=None)
+            List of structure uid's to exclude from populating with agents. Useful for bipartite networks or any
+            network with mixed agents.
+
+        """
+        exclude = exclude if exclude else list()
+        fill_list = set(self.structure.nodes()) - set(exclude)
+        if len(fill_list) > 0:
+            for uid in fill_list:
+                self.__setitem__(uid, agent_constructor(uid, self, state=initial_agent_state))
 
     def add_edges(self, agent_1, agent_2):
         NotImplementedError()
@@ -239,3 +270,36 @@ class BaseNetworkEnvironment(BaseEnvironment):
 
     def __delitem__(self, node_id):
         self.structure.remove_node(node_id)
+
+
+def build_simulation(agent_constructor, env_constructor, structure, initial_state=None, initial_time=0):
+    # TODO : reformat this to be less unwieldy
+    """Creates an environment given a particular structure and populating it with agents and a particular initial state
+
+    Parameters
+    ----------
+    agent_constructor : BaseAgent class or subclass
+        Will be used to create agents to populate the structure in teh environment
+    env_constructor : BaseEnvironment class or subclass
+        Environment will be instantiated using this constructor.
+    structure : structure object
+        Used to instantiate a structure in the environment
+    initial_state : BaseState object or None, optional (default = None)
+    initial_time = int, optional (default = 0)
+
+    Returns
+    -------
+    Environment
+        The returned environment will have n agents based on a structure with size n.
+
+    Examples
+    --------
+    # >>> sim = build_simul ation(nxsim.agents.TestAgent, BaseEnvironment, nx.Graph)
+
+    """
+    # Set-up trial environment
+    env = env_constructor(structure=structure, initial_time=initial_time)
+    # Populate environment with default agent
+    # TODO : pass either a state constructor or an object
+    env.populate(agent_constructor, initial_state=initial_state)
+    return env

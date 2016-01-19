@@ -82,15 +82,13 @@ class BaseAgent(object):
             Key-value pairs of other state parameters for the agent
 
         """
-        # Initialize Properties
-        self._env = None
-        self._state = None
-
         # Execute property setters
-        self.env = environment
+        self._env = environment
         if state:
             assert isinstance(state, BaseState)
             self._state = state  # state machine - can only have one state at a time
+        else:
+            self._state = None
 
         # Initialize agent parameters
         self.uid = uid
